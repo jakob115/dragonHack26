@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ledger | Login</title>
+    <title>Ledger | Register</title>
     <link rel="stylesheet" href="{% static 'css/ledger.css' %}">
 </head>
 <body>
@@ -16,28 +16,32 @@
 <main class="auth-shell">
     <section class="auth-card">
         <div class="logo-wordmark">LEDG<span>ER</span></div>
-        <p class="auth-subtitle">Sign in to continue to your finance workspace.</p>
+        <p class="auth-subtitle">Create your account to access the app.</p>
 
         {% if form.errors %}
-            <div class="auth-error">Invalid username or password.</div>
+            <div class="auth-error">Please fix the highlighted fields and try again.</div>
         {% endif %}
 
         <form method="post" class="auth-form">
             {% csrf_token %}
+            {{ form.non_field_errors }}
+
             <label class="qa-label" for="id_username">Username</label>
-            <input class="auth-input" id="id_username" type="text" name="username" required autofocus>
+            <input class="auth-input" id="id_username" type="text" name="username" required value="{{ form.username.value|default:'' }}">
+            {{ form.username.errors }}
 
-            <label class="qa-label" for="id_password">Password</label>
-            <input class="auth-input" id="id_password" type="password" name="password" required>
+            <label class="qa-label" for="id_password1">Password</label>
+            <input class="auth-input" id="id_password1" type="password" name="password1" required>
+            {{ form.password1.errors }}
 
-            {% if next %}
-                <input type="hidden" name="next" value="{{ next }}">
-            {% endif %}
+            <label class="qa-label" for="id_password2">Confirm password</label>
+            <input class="auth-input" id="id_password2" type="password" name="password2" required>
+            {{ form.password2.errors }}
 
-            <button class="btn btn-gold auth-submit" type="submit">Log in</button>
+            <button class="btn btn-gold auth-submit" type="submit">Create account</button>
         </form>
 
-        <p class="auth-switch">No account yet? <a href="{% url 'register' %}">Create one</a></p>
+        <p class="auth-switch">Already have an account? <a href="{% url 'login' %}">Log in</a></p>
     </section>
 </main>
 <script>

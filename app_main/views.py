@@ -1,9 +1,11 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from datetime import datetime
 from google.genai import types
 from google import genai
 
+from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import UserCreationForm
 from django.core.serializers.json import DjangoJSONEncoder
 from .models import ReceiptTransaction, Category, ItemTransaction
 
@@ -19,29 +21,37 @@ def home(request):
     return render(request, 'home.html', {"active_page": "dashboard"})
 
 
+@login_required
 def transactions(request):
     return render(request, 'transactions.html', {"active_page": "transactions"})
 
 
+@login_required
 def recurring(request):
     return render(request, 'recurring.html', {"active_page": "recurring"})
 
 
+@login_required
 def analytics(request):
     return render(request, 'analytics.html', {"active_page": "analytics"})
 
 
+@login_required
 def budgets(request):
     return render(request, 'budgets.html', {"active_page": "budgets"})
 
 
+@login_required
 def chat(request):
     return render(request, 'chat.html', {"active_page": "chat"})
 
 
-# ~ def scan_receipt(request):
-    # ~ return render(request, 'scan_receipt.html', {"active_page": "scan"})
+@login_required
+def scan_receipt(request):
+    return render(request, 'scan_receipt.html', {"active_page": "scan"})
 
+
+@login_required
 def process_receipt_image(request):
     uploaded_file = None
     
@@ -121,7 +131,21 @@ def process_receipt_image(request):
                                                   merchant=item['merchant'],
                                                   name=item['name']
                                                 )
-    return render(request, 'home.html')
+    return render(request, 'home.html', {"active_page": "dashboard"})
+
+
+def register(request):
+    if request.user.is_authenticated:
+        return redirect("dashboard")
+    if request.method == "POST":
+        form = UserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            login(request, user)
+            return redirect("dashboard")
+    else:
+        form = UserCreationForm()
+    return render(request, "registration/register.html", {"form": form})
     
     # ~ user = models.ForeignKey(User, on_delete=models.CASCADE)
     # ~ receipt = models.ForeignKey(ReceiptTransaction, on_delete=models.CASCADE, null=True, blank=True)

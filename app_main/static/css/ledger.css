@@ -125,6 +125,71 @@ a{text-decoration:none;}
 .btn-gold:hover{background:#D4B060;}
 .theme-toggle{min-width:96px;justify-content:center;}
 
+.auth-shell{
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+}
+.auth-theme-wrap{
+  position:fixed;
+  top:14px;
+  right:14px;
+  z-index:5;
+}
+.auth-card{
+  width:min(420px, 100%);
+  border:0.5px solid var(--line2);
+  background:var(--bg3);
+  border-radius:12px;
+  padding:22px;
+}
+.auth-subtitle{
+  margin-top:8px;
+  color:var(--text2);
+  font-size:12px;
+}
+.auth-form{
+  margin-top:16px;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.auth-input{
+  border:0.5px solid var(--line2);
+  background:var(--bg4);
+  color:var(--text);
+  border-radius:8px;
+  padding:10px 11px;
+  font-family:var(--sans);
+  font-size:13px;
+  outline:none;
+}
+.auth-input:focus{border-color:var(--gold2);}
+.auth-submit{margin-top:8px;justify-content:center;}
+.auth-switch{
+  margin-top:14px;
+  font-size:11.5px;
+  color:var(--text2);
+}
+.auth-switch a{color:var(--gold);}
+.auth-error{
+  margin-top:12px;
+  border:0.5px solid var(--red);
+  background:var(--red-dim);
+  color:var(--red);
+  border-radius:8px;
+  padding:8px 10px;
+  font-size:11px;
+}
+.errorlist{
+  list-style:none;
+  color:var(--red);
+  font-size:10px;
+  margin:2px 0 4px;
+}
+
 .ticker{background:var(--bg2);border:0.5px solid var(--line2);border-radius:8px;padding:10px 16px;display:flex;gap:28px;margin-bottom:16px;align-items:center;overflow:hidden;}
 .tick-item{display:flex;flex-direction:column;gap:2px;min-width:0;}
 .tick-label{font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;white-space:nowrap;}
@@ -454,4 +519,8 @@ a{text-decoration:none;}
   .chat-thread{padding:12px;}
   .chat-bubble{max-width:96%;}
   .chat-input{font-size:11.5px;}
+  .auth-theme-wrap{
+    top:10px;
+    right:10px;
+  }
 }
