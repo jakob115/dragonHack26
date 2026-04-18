@@ -23,7 +23,7 @@ class ItemTransaction(models.Model):
     budget = models.ForeignKey(Budget, on_delete=models.CASCADE, null=True, blank=True)
     cost = models.DecimalField(max_digits=10, decimal_places=2)
     quantity = models.DecimalField(max_digits=10, decimal_places=2)
-    date = models.DateField()
+    date = models.DateField(auto_now=True)
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
     merchant = models.CharField(max_length=100, blank=True, null=True)
     name = models.CharField(max_length=100, blank=True, null=True)

@@ -209,37 +209,58 @@
         </div>
     </div>
 
-    <div class="stack">
-        <div class="panel">
-            <div class="panel-head">
-                <div class="panel-title">Quick add expense</div>
-                <div class="mono mono-xs">
-                    <span class="pulse"></span>
-                    AI categorisation on
+    <form method="post" action="{% url 'quick_add_item' %}">
+        {% csrf_token %}
+        <div class="stack">
+            <div class="panel">
+                <div class="panel-head">
+                    <div class="panel-title">Quick add expense</div>
+                </div>
+                <div class="panel-body">
+                    <div class="qa-fields">
+                        <div class="qa-field">
+                            <div class="qa-label">Name</div>
+                            <input class="qa-input" type="text" name="name" placeholder="e.g. Apples, Bicycle, ...">
+                        </div>
+                        <div class="qa-field">
+                            <div class="qa-label">Merchant</div>
+                            <input class="qa-input" type="text" name="merchant" placeholder="e.g. Mercator, Bolt ride...">
+                        </div>
+                        <div class="qa-field">
+                            <div class="qa-label">Cost</div>
+                            <input class="qa-input" type="text" name="cost" placeholder="€ 0.00">
+                        </div>
+                        <div class="qa-field">
+                            <div class="qa-label">Quantity</div>
+                            <input class="qa-input" type="text" name="quantity" placeholder="1.5">
+                        </div>
+                        <div class="qa-field qa-field-wide">
+                            <div class="qa-label">Category</div>
+                            <select class="qa-input" type="text" name="category">
+                                <option value="">Select a category</option>
+                                <option value="Groceries">Groceries</option>
+                                <option value="Dining out">Dining out</option>
+                                <option value="Transport">Transport</option>
+                                <option value="Clothing">Clothing</option>
+                                <option value="Medical">Medical</option>       
+                                <option value="Entertainment">Entertainment</option>
+                                <option value="Gifts">Gifts</option>
+                                <option value="Travel">Travel</option>
+                                <option value="Luxury">Luxury</option>  
+                                <option value="Home & Garden">Home & Garden</option>  
+                                <option value="Electronics">Electronics</option>  
+                                <option value="Miscellanious">Miscellanious</option>  
+                            </select>
+                        </div>
+                    </div>
+                    <div class="qa-hint">Manually add purchesed items</div>
+                    <div class="qa-btns">
+                        <button class="btn btn-flex" type="submit">Save draft</button>
+                        <button class="btn btn-gold btn-flex" type="submit">Add expense</button>
+                    </div>
                 </div>
             </div>
-            <div class="panel-body">
-                <div class="qa-fields">
-                    <div class="qa-field qa-field-wide">
-                        <div class="qa-label">Merchant</div>
-                        <input class="qa-input" type="text" placeholder="e.g. Mercator, Bolt ride...">
-                    </div>
-                    <div class="qa-field">
-                        <div class="qa-label">Amount</div>
-                        <input class="qa-input" type="text" placeholder="€ 0.00">
-                    </div>
-                    <div class="qa-field">
-                        <div class="qa-label">Account</div>
-                        <input class="qa-input" type="text" placeholder="N26 Checking">
-                    </div>
-                </div>
-                <div class="qa-hint">AI will categorise and create new categories if none match</div>
-                <div class="qa-btns">
-                    <button class="btn btn-flex">Save draft</button>
-                    <button class="btn btn-gold btn-flex">Add expense</button>
-                </div>
-            </div>
-        </div>
+        </form>
 
         <div class="scan-zone">
             <div class="scan-ico">📸</div>

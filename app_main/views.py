@@ -155,3 +155,19 @@ def register(request):
     # ~ date = models.DateField()
     # ~ category = models.ForeignKey(Category, on_delete=models.CASCADE)
     # ~ merchant = models.CharField(max_length=100, blank=True, null=True)
+
+
+
+@login_required
+def quick_add_item(request):
+
+    curr_category = request.POST.get("category")
+    curr_category = Category.objects.get(title=curr_category)
+
+    ItemTransaction.objects.create(user=request.user,
+                                   cost=request.POST.get("cost"),
+                                   quantity=request.POST.get("quantity"),
+                                   category=curr_category,
+                                   merchant=request.POST.get("merchant"),
+                                   name=request.POST.get("name"))
+    return render(request, 'home.html', {"active_page": "dashboard"})
