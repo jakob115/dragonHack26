@@ -35,7 +35,12 @@ def home(request):
 
 @login_required
 def transactions(request):
-    return render(request, 'transactions.html', {"active_page": "transactions"})
+    context = {}
+    context['active_page'] = "transactions"
+    curr_user = request.user
+    transactions = ItemTransaction.objects.filter(user=curr_user)
+    context['transactions'] = transactions
+    return render(request, 'transactions.html', context)
 
 
 @login_required

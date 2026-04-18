@@ -10,6 +10,18 @@
         <div class="panel-link">April 2025</div>
     </div>
     <div class="panel-body panel-body-tight">
+    {% for transaction in transactions %}
+    <div class="tx">
+        <div class="tx-inf">
+            <div class="tx-merch">{{ transaction.name }}</div>
+            <div class="tx-meta"><div class="tx-cat-tag">{{ transaction.merchant }}</div><div class="tx-date">Apr 17</div></div>
+        </div>
+        <div class="tx-amt deb">−€{{ transaction.cost|floatformat:2 }}</div>
+    </div>
+    {% endfor %}
+    </div>
+{% comment %}
+    <div class="panel-body panel-body-tight">
         <div class="tx">
             <div class="tx-ico">☕</div>
             <div class="tx-inf">
@@ -35,5 +47,6 @@
             <div class="tx-amt cre">+€3,200</div>
         </div>
     </div>
+{% endcomment %}
 </div>
 {% endblock %}
