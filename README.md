@@ -43,3 +43,21 @@ django-admin startproject example --template https://github.com/mongodb-labs/dja
 - image 
 - gemini api call
 - mongodb
+
+## MongoDB setup
+
+1. Create a local env file from the example:
+
+```bash
+cp .env.example .env
+```
+
+2. Set `MONGODB_CONNECT_STRING` to your MongoDB instance.
+3. Optionally change `MONGODB_DB_NAME` if you do not want to use `DH26`.
+4. Run a Django system check:
+
+```bash
+python3 manage.py check
+```
+
+The project is configured to use `django_mongodb_backend` as the default Django database engine.
