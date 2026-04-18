@@ -42,15 +42,10 @@
 </div>
 
 <div style="margin-top: 2rem;">
-    <div class="dropdown">
-        <button class="btn btn-gold btn-flex dropdown-toggle" type="button" id="exportDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-            Export Data
-        </button>
-        <ul class="dropdown-menu" aria-labelledby="exportDropdown">
-            <li><a class="dropdown-item" href="{% url 'export_data_excel' %}?format=excel">Excel (.xlsx)</a></li>
-            <li><a class="dropdown-item" href="{% url 'export_data_excel' %}?format=json">JSON (.json)</a></li>
-        </ul>
-    </div>
+    <form action="{% url 'export_data_excel' %}" method="get">
+        <input type="hidden" name="format" value="excel">
+        <button type="submit" class="btn btn-gold btn-flex">Export as Excel</button>
+    </form>
 </div>
 
 {% endblock %}
