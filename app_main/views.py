@@ -1,12 +1,20 @@
 from django.shortcuts import render
 from datetime import datetime
+from google.genai import types
+from google import genai
 
+from django.contrib.auth.decorators import login_required
 from django.core.serializers.json import DjangoJSONEncoder
 from .models import ReceiptTransaction, Category, ItemTransaction
 
+from DH26 import settings
+
 import json
 
+client = genai.Client(api_key=settings.GEMINI_API_KEY)
+
 # Create your views here.
+@login_required
 def home(request):
     return render(request, 'home.html', {"active_page": "dashboard"})
 
@@ -31,8 +39,8 @@ def chat(request):
     return render(request, 'chat.html', {"active_page": "chat"})
 
 
-def scan_receipt(request):
-    return render(request, 'scan_receipt.html', {"active_page": "scan"})
+# ~ def scan_receipt(request):
+    # ~ return render(request, 'scan_receipt.html', {"active_page": "scan"})
 
 def process_receipt_image(request):
     uploaded_file = None
@@ -61,7 +69,7 @@ def process_receipt_image(request):
     categories_string = json.dumps(list(existing_categories), indent=2, cls=DjangoJSONEncoder)
     
     prompt_text = (
-        "Extract date, merchant, name, prices and pick a category from "
+        "Extract date, merchant, name, cost, quantity and pick a category from "
        + categories_string
        + "if it fits to any of them, otherwise create a new one."
        + " in json format in english in this order, named lower case."
@@ -71,7 +79,7 @@ def process_receipt_image(request):
        + "The date shoud be in a %Y-%m-%d format, the fields should be empty if no information present"
     )
     prompt_contents = None
-    if isImage:
+    if is_Image:
         prompt_contents = [
             types.Part.from_bytes(
                 data=image_bytes,
@@ -97,5 +105,29 @@ def process_receipt_image(request):
     data = json.loads(clean_content)
     for item in data:
         item_dt = datetime.strptime(item['date'], "%Y-%m-%d")
-        new_item = ItemTransaction.objects.create()
-    pass
+        
+        curr_category = Category.objects.filter(title=item['category'])
+        if curr_category:
+            curr_category = curr_category[0]
+        else:
+            curr_category = Category.objects.create(title=item['category'])
+        
+        new_item = ItemTransaction.objects.create(user=curr_user,
+                                                  receipt=new_receipt,
+                                                  cost=item['cost'],
+                                                  quantity=item['quantity'],
+                                                  date=item_dt,
+                                                  category=curr_category,
+                                                  merchant=item['merchant'],
+                                                  name=item['name']
+                                                )
+    return render(request, 'home.html')
+    
+    # ~ user = models.ForeignKey(User, on_delete=models.CASCADE)
+    # ~ receipt = models.ForeignKey(ReceiptTransaction, on_delete=models.CASCADE, null=True, blank=True)
+    # ~ budget = models.ForeignKey(Budget, on_delete=models.CASCADE, null=True, blank=True)
+    # ~ cost = models.DecimalField(max_digits=10, decimal_places=2)
+    # ~ quantity = models.DecimalField(max_digits=10, decimal_places=2)
+    # ~ date = models.DateField()
+    # ~ category = models.ForeignKey(Category, on_delete=models.CASCADE)
+    # ~ merchant = models.CharField(max_length=100, blank=True, null=True)

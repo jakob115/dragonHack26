@@ -10,7 +10,7 @@ class Budget(models.Model):
 
 class ReceiptTransaction(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    file = models.FileField()
+    file = models.FileField(upload_to='receipts/')
     title = models.CharField(max_length=100, blank=True, null=True)
 
 class Category(models.Model):
@@ -26,6 +26,7 @@ class ItemTransaction(models.Model):
     date = models.DateField()
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
     merchant = models.CharField(max_length=100, blank=True, null=True)
+    name = models.CharField(max_length=100, blank=True, null=True)
 
 class ScheduleExpense(models.Model):
     title = models.CharField(max_length=100)

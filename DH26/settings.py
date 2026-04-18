@@ -27,7 +27,7 @@ SECRET_KEY = 'django-insecure-yvu8^n3ymu*uup*&iitt)rx&i&#%hv%xcyo_lazj$wze1q*cbm
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['10.32.251.60', 'localhost']
 
 # Setup .env file to use keys
 env = environ.Env()
@@ -78,6 +78,9 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'DH26.wsgi.application'
 
+# Root media folder in which uploaded files will be saved
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
 
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
@@ -141,6 +144,9 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+
+
+LOGIN_REDIRECT_URL = "/"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/6.0/ref/settings/#default-auto-field
