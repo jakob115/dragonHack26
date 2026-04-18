@@ -250,13 +250,15 @@
                 <input 
                     type="file" 
                     name="video" 
-                    id="receiptVideo"
+                    id="receiptVideoBottom"
                     accept="video/*" 
                     capture="environment"
+                    class="receipt-upload"
                     style="display: none;">
-                <button type="button" class="btn scan-btn" onclick="document.getElementById('receiptVideo').click()">
+                <button type="button" class="btn scan-btn" onclick="document.getElementById('receiptVideoBottom').click()">
                     Upload Receipt
                 </button>
+                <input type="hidden" name="csrfmiddlewaretoken" value='{% csrf_token %}'>
             </form>
         </div>
     </div>
@@ -264,11 +266,5 @@
 {% endblock %}
 
 {% block extrascripts %}
-<script>
-    document.getElementById("receiptVideo").addEventListener("change", function() {
-        if (this.files.length > 0) {
-            document.getElementById("receiptVideoForm").submit();
-        }
-    });
-</script>
+
 {% endblock %}

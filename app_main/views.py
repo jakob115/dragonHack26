@@ -52,6 +52,7 @@ def chat(request):
 def process_receipt_image(request):
     uploaded_file = None
     is_Image = False
+   
     if 'image' in request.FILES:
         uploaded_file = request.FILES['image']
         is_Image = True

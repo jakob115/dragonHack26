@@ -32,11 +32,9 @@ def receipt_image_background_process(receipt_id,  is_Image, user_id):
         "Extract date, merchant, name, cost, quantity and pick a category from "
        + categories_string
        + "if it fits to any of them, otherwise create a new one."
-       + " in json format in english in this order, named lower case."
-       + "Add a field 'existing category'"
-       + "and put True if you picked from list and False if you made a new one." 
+       + " It should be an array of jsons for each item with string keys, in english, named lower case." 
        + "Convert money to euro, divide each item."
-       + "The date shoud be in a %Y-%m-%d format, the fields should be empty if no information present"
+       + "Under the date key it shoud be in a %Y-%m-%d format for strptime, the fields should be empty if no information present"
     )
     prompt_contents = None
     if is_Image:
@@ -57,7 +55,7 @@ def receipt_image_background_process(receipt_id,  is_Image, user_id):
         ]
     
     response = client.models.generate_content(
-        model="gemini-3-flash-preview",
+        model="gemini-3.1-pro-preview",
         contents=prompt_contents
     )
     
