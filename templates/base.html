@@ -1,0 +1,43 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}SpenderTracker{% endblock %}</title>
+
+    <!-- Global Styles -->
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+
+    <!-- Page-specific extra styles -->
+    {% block extrastyle %}
+    {% endblock %}
+</head>
+<body>
+
+    <!-- Navbar (optional) -->
+    <header>
+        <nav>
+            <h1>My App</h1>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <p>&copy; {{ year|default:2026 }} SpenderTracker</p>
+    </footer>
+
+    <!-- Global Scripts -->
+    <script src="{% static 'js/script.js' %}"></script>
+
+    <!-- Page-specific scripts -->
+    {% block extrascripts %}
+    {% endblock %}
+</body>
+</html>
