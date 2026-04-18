@@ -19,12 +19,13 @@ class Category(models.Model):
 
 class ItemTransaction(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    file = models.FileField()
     receipt = models.ForeignKey(ReceiptTransaction, on_delete=models.CASCADE, null=True, blank=True)
+    budget = models.ForeignKey(Budget, on_delete=models.CASCADE, null=True, blank=True)
     cost = models.DecimalField(max_digits=10, decimal_places=2)
     quantity = models.DecimalField(max_digits=10, decimal_places=2)
     date = models.DateField()
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
+    merchant = models.CharField(max_length=100, blank=True, null=True)
 
 class ScheduleExpense(models.Model):
     title = models.CharField(max_length=100)
