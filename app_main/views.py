@@ -9,6 +9,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django.core.serializers.json import DjangoJSONEncoder
 from django.http import HttpResponse
 from io import BytesIO
+import os
 from .models import ReceiptTransaction, Category, ItemTransaction
 
 from DH26 import settings
@@ -164,7 +165,8 @@ def register(request):
 @login_required
 def export_transactions(request):
 
-    with open('inputTest1.json', 'r') as f:
+    json_path = os.path.join(os.path.dirname(__file__), 'inputTest1.json')
+    with open(json_path, 'r') as f:
         jsonData = json.load(f)
 
     structuredJSON = []
