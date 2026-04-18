@@ -170,7 +170,7 @@ def export_data_excel(request):
         jsonData = json.load(f)
 
     structuredJSON = []
-    
+
     for recieptTransaction in jsonData["receipt_transactions"]:
         for itemTransaction in recieptTransaction["item_transactions"]:
             newItem = {
