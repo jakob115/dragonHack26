@@ -7,7 +7,7 @@
 <div class="ticker">
     <div class="tick-item">
         <div class="tick-label">Net worth</div>
-        <div class="tick-val">€15,890</div>
+        <div class="tick-val">€{{ balance }}</div>
         <div class="tick-delta text-green">↑ +€1,240 MTD</div>
     </div>
     <div class="tick-sep"></div>
@@ -39,8 +39,8 @@
 <div class="nw-hero">
     <div>
         <div class="nw-main-label">Total net worth · April 2025</div>
-        <div class="nw-amount"><span class="currency">€</span>15,890<span class="nw-decimal">.72</span></div>
-        <div class="nw-updated">4 accounts · last updated just now</div>
+        <div class="nw-amount"><span class="currency">€</span>{{ net_worth_int }}<span class="nw-decimal">.{{ net_worth_dec }}</span></div>
+        <div class="nw-updated">{{ accounts_count }} accounts · last updated just now</div>
     </div>
     <div class="nw-line"></div>
     <div class="nw-stat">

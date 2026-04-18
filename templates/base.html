@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Ledger{% endblock %}</title>
     <link rel="stylesheet" href="{% static 'css/ledger.css' %}">
+    <meta name="csrf-token" content="{{ csrf_token }}">
     {% block extrastyle %}{% endblock %}
 </head>
 <body>
@@ -49,44 +50,22 @@
         </div>
 
         <div class="accounts-section">
+            {% for acc in accounts %}
             <div class="acc-card active">
                 <div class="acc-top">
                     <div class="acc-pip gold-bg"></div>
-                    <div class="acc-name">N26 Checking</div>
+                    <div class="acc-name">{{acc.title}}</div>
                 </div>
-                <div class="acc-type">DEBIT · ••4521</div>
+                <div class="acc-type">{{acc.description}}</div>
                 <div class="acc-row">
-                    <div class="acc-bal">€2,840</div>
+                    <div class="acc-bal">€ {{acc.balance}}</div>
                     <div class="acc-delta pos">+€340</div>
                 </div>
             </div>
-
-            <div class="acc-card">
-                <div class="acc-top">
-                    <div class="acc-pip blue-bg"></div>
-                    <div class="acc-name">Revolut</div>
-                </div>
-                <div class="acc-type">SAVINGS · ••9933</div>
-                <div class="acc-row">
-                    <div class="acc-bal">€8,250</div>
-                    <div class="acc-delta pos">+€500</div>
-                </div>
-            </div>
-
-            <div class="acc-card">
-                <div class="acc-top">
-                    <div class="acc-pip orange-bg"></div>
-                    <div class="acc-name">Cash wallet</div>
-                </div>
-                <div class="acc-type">PHYSICAL</div>
-                <div class="acc-row">
-                    <div class="acc-bal">€120</div>
-                    <div class="acc-delta neg">−€80</div>
-                </div>
-            </div>
+            {% endfor %}
         </div>
 
-        <button class="add-btn">+ Add account</button>
+        <button type="button" id="btn_add_acc" class="add-btn">+ Add account</button>
     </aside>
 
     <div class="layout-col">
@@ -127,6 +106,34 @@
         </main>
     </div>
 </div>
+
+<div class="modal-backdrop" id="account-modal" role="dialog" aria-modal="true" aria-labelledby="account-modal-title" aria-hidden="true" hidden>
+    <div class="modal-sheet">
+        <div class="modal-head">
+            <h2 class="modal-title" id="account-modal-title">New account</h2>
+            <button type="button" class="modal-close" id="account-modal-close" aria-label="Close">&times;</button>
+        </div>
+        <form class="modal-form" id="account-modal-form" novalidate>
+            <div class="modal-field">
+                <label class="qa-label" for="account-title">Title</label>
+                <input class="qa-input" type="text" id="account-title" name="title" placeholder="e.g. N26 Checking" required autocomplete="off">
+            </div>
+            <div class="modal-field">
+                <label class="qa-label" for="account-description">Description</label>
+                <textarea class="qa-input modal-textarea" id="account-description" name="description" rows="3" placeholder="Optional notes"></textarea>
+            </div>
+            <div class="modal-field">
+                <label class="qa-label" for="account-balance">Balance</label>
+                <input class="qa-input" type="number" id="account-balance" name="balance" inputmode="decimal" step="0.01" placeholder="0.00" required>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn" id="account-modal-cancel">Cancel</button>
+                <button type="submit" class="btn btn-gold">Add account</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <a class="fab-receipt" href="{% url 'scan_receipt' %}" aria-label="Upload or take receipt photo">
     <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6">
         <path d="M6 1v10M1 6h10"/>
@@ -139,27 +146,91 @@
     const root = document.documentElement;
     const toggle = document.getElementById("theme-toggle");
     const label = document.getElementById("theme-toggle-label");
-    if (!toggle || !label) return;
 
-    const applyTheme = (theme) => {
-        root.setAttribute("data-theme", theme);
-        label.textContent = theme === "light" ? "Dark mode" : "Light mode";
-    };
+    if (toggle && label) {
+        const applyTheme = (theme) => {
+            root.setAttribute("data-theme", theme);
+            label.textContent = theme === "light" ? "Dark mode" : "Light mode";
+        };
 
-    const savedTheme = localStorage.getItem(storageKey);
-    if (savedTheme === "light" || savedTheme === "dark") {
-        applyTheme(savedTheme);
-    } else {
-        applyTheme("dark");
+        const savedTheme = localStorage.getItem(storageKey);
+        if (savedTheme === "light" || savedTheme === "dark") {
+            applyTheme(savedTheme);
+        } else {
+            applyTheme("dark");
+        }
+
+        toggle.addEventListener("click", () => {
+            const currentTheme = root.getAttribute("data-theme") === "light" ? "light" : "dark";
+            const nextTheme = currentTheme === "light" ? "dark" : "light";
+            localStorage.setItem(storageKey, nextTheme);
+            applyTheme(nextTheme);
+        });
     }
 
-    toggle.addEventListener("click", () => {
-        const currentTheme = root.getAttribute("data-theme") === "light" ? "light" : "dark";
-        const nextTheme = currentTheme === "light" ? "dark" : "light";
-        localStorage.setItem(storageKey, nextTheme);
-        applyTheme(nextTheme);
+    const btnAddAcc = document.getElementById("btn_add_acc");
+    const accountModal = document.getElementById("account-modal");
+    const accountModalClose = document.getElementById("account-modal-close");
+    const accountModalCancel = document.getElementById("account-modal-cancel");
+    const accountModalForm = document.getElementById("account-modal-form");
+    const csrfToken = document
+                            .querySelector('meta[name="csrf-token"]')
+                            .getAttribute("content");
+
+    const openAccountModal = () => {
+        if (!accountModal) return;
+        accountModal.hidden = false;
+        accountModal.removeAttribute("hidden");
+        accountModal.setAttribute("aria-hidden", "false");
+        document.body.classList.add("modal-open");
+        const titleInput = document.getElementById("account-title");
+        titleInput?.focus();
+    };
+
+    const closeAccountModal = () => {
+        if (!accountModal) return;
+        accountModal.hidden = true;
+        accountModal.setAttribute("aria-hidden", "true");
+        document.body.classList.remove("modal-open");
+    };
+
+    btnAddAcc?.addEventListener("click", () => {
+        accountModalForm?.reset();
+        openAccountModal();
+    });
+
+    accountModalClose?.addEventListener("click", closeAccountModal);
+    accountModalCancel?.addEventListener("click", closeAccountModal);
+
+    accountModal?.addEventListener("click", (e) => {
+        if (e.target === accountModal) closeAccountModal();
+    });
+
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && accountModal && !accountModal.hidden) closeAccountModal();
+    });
+
+    accountModalForm?.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const title = document.getElementById("account-title")?.value.trim() ?? "";
+        const description = document.getElementById("account-description")?.value.trim() ?? "";
+        const balanceRaw = document.getElementById("account-balance")?.value ?? "";
+        if (!title || balanceRaw === "") return;
+        const balance = parseFloat(balanceRaw.replace(",", "."));
+        if (Number.isNaN(balance)) return;
+        fetch("/add_account/", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": csrfToken},
+            body: JSON.stringify({ title, description, balance }),
+        });
+        closeAccountModal();
+        accountModalForm.reset();
+        location.reload();
     });
 })();
+
 </script>
 </body>
 </html>

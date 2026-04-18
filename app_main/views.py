@@ -1,3 +1,5 @@
+from django.db.models.aggregates import Sum
+from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render, redirect
 from datetime import datetime
 from google.genai import types
@@ -7,7 +9,7 @@ from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
 from django.core.serializers.json import DjangoJSONEncoder
-from .models import ReceiptTransaction, Category, ItemTransaction
+from .models import ReceiptTransaction, Category, ItemTransaction, Account
 
 from DH26 import settings
 
@@ -18,7 +20,15 @@ client = genai.Client(api_key=settings.GEMINI_API_KEY)
 # Create your views here.
 @login_required
 def home(request):
-    return render(request, 'home.html', {"active_page": "dashboard"})
+    context = {"active_page": "dashboard"}
+    balance = Account.objects.filter(user=request.user).aggregate(Sum('balance'))['balance__sum'] or 0
+    s_balance = "{:.2f}".format(balance)
+    int_part, dec_part = s_balance.split('.')
+    context['net_worth_int'] = int_part
+    context['net_worth_dec'] = dec_part
+    context['accounts_count'] = Account.objects.filter(user=request.user).count()
+    context['balance'] = balance
+    return render(request, 'home.html', context)
 
 
 @login_required
@@ -49,6 +59,28 @@ def chat(request):
 @login_required
 def scan_receipt(request):
     return render(request, 'scan_receipt.html', {"active_page": "scan"})
+
+@login_required
+def add_account(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=405)
+    try:
+        data = json.loads(request.body)
+
+        title = data.get("title", "").strip()
+        description = data.get("description", "").strip()
+        balance = data.get("balance")
+
+        if not title or balance is None:
+            return JsonResponse({"error": "Invalid input"}, status=400)
+        balance = float(balance)
+
+        Account.objects.create(user=request.user, title=title, description=description, balance=balance)
+
+        return HttpResponse(status=200)
+
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
 
 
 @login_required

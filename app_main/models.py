@@ -35,3 +35,9 @@ class ScheduleExpense(models.Model):
     type = models.CharField(max_length=100) #week,month,year
     dayofweek = models.IntegerField()
 
+class Account(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    title = models.CharField(max_length=100)
+    description = models.CharField(max_length=255)
+    balance = models.DecimalField(max_digits=20, decimal_places=2)
+
