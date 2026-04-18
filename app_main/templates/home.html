@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-
+{% load static %}
 {% block title %}Ledger | Dashboard{% endblock %}
 {% block page_title %}Dashboard{% endblock %}
 
@@ -245,8 +245,26 @@
             <div class="scan-ico">📸</div>
             <div class="scan-title">Scan a receipt</div>
             <div class="scan-sub">Drop an image or photograph a receipt. AI extracts every line item and amount automatically.</div>
-            <button class="btn scan-btn">Open camera / upload</button>
+            <form id="receiptVideoForm" method="POST" enctype="multipart/form-data" action="{% url 'scan_receipt'%}">
+                {% csrf_token %}
+                <input 
+                    type="file" 
+                    name="video" 
+                    id="receiptVideoBottom"
+                    accept="video/*" 
+                    capture="environment"
+                    class="receipt-upload"
+                    style="display: none;">
+                <button type="button" class="btn scan-btn" onclick="document.getElementById('receiptVideoBottom').click()">
+                    Upload Receipt
+                </button>
+                <input type="hidden" name="csrfmiddlewaretoken" value='{% csrf_token %}'>
+            </form>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extrascripts %}
+
 {% endblock %}

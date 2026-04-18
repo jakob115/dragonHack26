@@ -87,10 +87,6 @@
                     <button class="btn" type="submit">Log out</button>
                 </form>
                 {% block topbar_actions %}
-                <button class="btn">
-                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="1" y="1" width="10" height="10" rx="1.5"/><path d="M3 5.5l2 2 4-4"/></svg>
-                    Scan receipt
-                </button>
                 <button class="btn btn-gold">
                     <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#0C0C0E" stroke-width="1.5"><path d="M6 1v10M1 6h10"/></svg>
                     Add expense
@@ -134,11 +130,22 @@
     </div>
 </div>
 
-<a class="fab-receipt" href="{% url 'scan_receipt' %}" aria-label="Upload or take receipt photo">
-    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6">
-        <path d="M6 1v10M1 6h10"/>
-    </svg>
-</a>
+<form id="receiptForm" method="POST" enctype="multipart/form-data" action="{% url 'scan_receipt' %}">
+    <input
+        type="file"
+        name="video"
+        id="receiptVideoGlobal"
+        accept="video/*"
+        capture="environment"
+        class="receipt-upload"
+        style="display: none;">
+    <input type="hidden" name="csrfmiddlewaretoken" value='{% csrf_token %}'>
+    <a class="fab-receipt " aria-label="Upload or take receipt photo" onclick="document.getElementById('receiptVideoGlobal').click()">
+        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6">
+            <path d="M6 1v10M1 6h10"/>
+        </svg>
+    </a>
+</form>
 {% block extrascripts %}{% endblock %}
 <script>
 (() => {
@@ -146,6 +153,7 @@
     const root = document.documentElement;
     const toggle = document.getElementById("theme-toggle");
     const label = document.getElementById("theme-toggle-label");
+    if (!toggle || !label) return;
 
     if (toggle && label) {
         const applyTheme = (theme) => {
@@ -231,6 +239,33 @@
     });
 })();
 
+document.addEventListener("change", async function (e) {
+    if (!e.target.classList.contains("receipt-upload")) return;
+    if (e.target.files.length === 0) return;
+
+    const file = e.target.files[0];
+
+    const formData = new FormData();
+    formData.append("video", file);
+
+    const csrftoken = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
+
+    try {
+        const response = await fetch("{% url 'scan_receipt' %}", {
+            method: "POST",
+            body: formData,
+            headers: {
+                "X-CSRFToken": csrftoken
+            }
+        });
+
+        const result = await response.json();
+        console.log("Upload success:", result);
+
+    } catch (err) {
+        console.error("Upload failed:", err);
+    }
+});
 </script>
 </body>
 </html>
