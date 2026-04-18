@@ -110,6 +110,16 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+# Cache configuration for redis
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379/1",
+        "KEY_PREFIX" : "message",
+        "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"}
+    }
+}
+
 
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
@@ -138,3 +148,9 @@ MIGRATION_MODULES = {
     'auth': 'mongo_migrations.auth',
     'contenttypes': 'mongo_migrations.contenttypes',
 }
+
+# Celery configuration parameters
+CELERY_TIMEZONE = "Europe/Ljubljana"
+CELERY_ENABLE_UTC = True
+CELERY_BROKER_URL = "redis://localhost:6379/1"
+CELERY_RESULT_BACKEND = "redis://localhost:6379/1"
