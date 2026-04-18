@@ -5,3 +5,8 @@ django-mongodb-backend==6.0.3
 dnspython==2.8.0
 pymongo==4.16.0
 sqlparse==0.5.5
+
+
+pandas
+openpyxl
+
