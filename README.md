@@ -26,3 +26,20 @@ the command would look like this:
 ```bash
 django-admin startproject example --template https://github.com/mongodb-labs/django-mongodb-project/archive/refs/heads/6.0.x.zip
 ```
+
+
+## Functional Features
+- Reciept photo recognition
+- Reciept self input
+- Setup recurring payments
+- Analysis of finantial data
+
+## UI Features
+- Graphs
+- Recap
+- ...
+
+## ToDo:
+- image 
+- gemini api call
+- mongodb
