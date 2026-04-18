@@ -1,0 +1,14 @@
+# Secret key env
+.env
+
+# Virtual environment
+venv/
+
+# Media files
+media/
+staticfiles/
+
+__pycache__/
+*.pyc
+
+nohup.out
