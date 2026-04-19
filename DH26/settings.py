@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/6.0/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
-
+import os
 from pathlib import Path
 from celery.schedules import crontab
 import environ 
@@ -27,8 +27,8 @@ SECRET_KEY = 'django-insecure-yvu8^n3ymu*uup*&iitt)rx&i&#%hv%xcyo_lazj$wze1q*cbm
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-
-ALLOWED_HOSTS = ['10.32.251.60', 'localhost', '10.32.248.107']
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+ALLOWED_HOSTS = ['10.32.251.60', 'localhost', '10.32.248.107', 'ledger.ondigitalocean.app']
 
 # Setup .env file to use keys
 env = environ.Env()
