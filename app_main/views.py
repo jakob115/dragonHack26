@@ -7,7 +7,7 @@ from django.http import JsonResponse, HttpResponse, StreamingHttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 import calendar
-from datetime import datetime
+from datetime import datetime, timedelta
 from bson import ObjectId
 from google.genai import types
 from google import genai
@@ -26,6 +26,31 @@ import json
 import pandas
 
 client = genai.Client(api_key=settings.GEMINI_API_KEY)
+
+
+def _savings_rate_pct(income: Decimal, expenses: Decimal):
+    """Portion of income not spent this period; None if income is zero."""
+    if income <= 0:
+        return None
+    saved = income - expenses
+    return float((saved / income * Decimal("100")).quantize(Decimal("0.01")))
+
+
+def _recurring_monthly_equivalent(user):
+    """Approximate total monthly outflow from scheduled expenses (normalized by cadence)."""
+    total = Decimal("0")
+    for row in ScheduleExpense.objects.filter(user=user):
+        cost = row.cost or Decimal("0")
+        if row.type == "DAILY":
+            total += cost * Decimal("30")
+        elif row.type == "WEEKLY":
+            total += cost * (Decimal("52") / Decimal("12"))
+        elif row.type == "MONTHLY":
+            total += cost
+        elif row.type == "YEARLY":
+            total += cost / Decimal("12")
+    return total.quantize(Decimal("0.01"))
+
 
 # Create your views here.
 @login_required
@@ -60,7 +85,74 @@ def home(request):
     context["budget_has_limits"] = total_budget_limit > 0
     context["budget_remaining_abs"] = abs(budget_remaining)
 
-    context['recurring_expenses'] = ScheduleExpense.objects.filter(user=request.user)
+    today = timezone.localdate()
+    month_start = today.replace(day=1)
+    last_day = calendar.monthrange(today.year, today.month)[1]
+    month_end = today.replace(day=last_day)
+    income_qs = IncomeTransaction.objects.filter(
+        user=request.user,
+        date__gte=month_start,
+        date__lte=month_end,
+    )
+    income_mtd_raw = income_qs.aggregate(total=Sum("amount"))["total"]
+    income_mtd = (income_mtd_raw or Decimal("0")).quantize(Decimal("0.01"))
+    context["income_mtd"] = income_mtd
+    context["income_count"] = income_qs.count()
+    context["income_latest"] = income_qs.order_by("-date", "-id").first()
+
+    expenses_mtd_raw = (
+        ItemTransaction.objects.filter(
+            user=request.user,
+            date__gte=month_start,
+            date__lte=month_end,
+        ).aggregate(total=Sum("cost"))["total"]
+    )
+    expenses_mtd = (expenses_mtd_raw or Decimal("0")).quantize(Decimal("0.01"))
+    context["expenses_mtd"] = expenses_mtd
+    context["monthly_burn"] = expenses_mtd
+
+    prev_month_end = month_start - timedelta(days=1)
+    prev_month_start = prev_month_end.replace(day=1)
+    expenses_prev_raw = (
+        ItemTransaction.objects.filter(
+            user=request.user,
+            date__gte=prev_month_start,
+            date__lte=prev_month_end,
+        ).aggregate(total=Sum("cost"))["total"]
+    )
+    expenses_prev = (expenses_prev_raw or Decimal("0")).quantize(Decimal("0.01"))
+    context["expenses_prev_month"] = expenses_prev
+
+    income_prev_raw = (
+        IncomeTransaction.objects.filter(
+            user=request.user,
+            date__gte=prev_month_start,
+            date__lte=prev_month_end,
+        ).aggregate(total=Sum("amount"))["total"]
+    )
+    income_prev = (income_prev_raw or Decimal("0")).quantize(Decimal("0.01"))
+
+    saved_mtd = (income_mtd - expenses_mtd).quantize(Decimal("0.01"))
+    context["saved_mtd"] = saved_mtd
+    context["saved_mtd_negative"] = saved_mtd < 0
+    context["saved_mtd_abs"] = abs(saved_mtd).quantize(Decimal("0.01"))
+
+    savings_rate = _savings_rate_pct(income_mtd, expenses_mtd)
+    savings_rate_prev = _savings_rate_pct(income_prev, expenses_prev)
+    context["savings_rate_pct"] = savings_rate
+    context["savings_rate_delta_pp"] = (
+        round(savings_rate - savings_rate_prev, 2)
+        if savings_rate is not None and savings_rate_prev is not None
+        else None
+    )
+
+    recurring_qs = ScheduleExpense.objects.filter(user=request.user)
+    context["recurring_monthly_total"] = _recurring_monthly_equivalent(request.user)
+    context["recurring_active_count"] = recurring_qs.count()
+
+    context["dashboard_month_label"] = today.strftime("%B %Y")
+
+    context['recurring_expenses'] = recurring_qs
     return render(request, 'home.html', context)
 
 
@@ -432,6 +524,205 @@ DEFAULT_DASHBOARD_INSIGHT_MESSAGE = (
 )
 
 
+def _analytics_payload_for_llm(request):
+    """Structured snapshot for analytics / chart prompts (JSON-safe primitives)."""
+    user = request.user
+    items = []
+    for row in (
+        ItemTransaction.objects.filter(user=user)
+        .select_related("category", "subcategory", "receipt", "budget")
+        .order_by("-date")[:400]
+    ):
+        items.append(
+            {
+                "date": row.date.strftime("%Y-%m-%d") if row.date else "",
+                "name": row.name or "",
+                "merchant": row.merchant or "",
+                "cost": str(row.cost),
+                "quantity": str(row.quantity),
+                "category": row.category.title if row.category_id else "",
+                "subcategory": row.subcategory.title if row.subcategory_id else "",
+                "receipt_id": str(row.receipt_id) if row.receipt_id else "",
+                "budget_title": row.budget.title if row.budget_id else "",
+            }
+        )
+
+    receipts = []
+    for r in ReceiptTransaction.objects.filter(user=user).order_by("-id")[:100]:
+        item_count = r.itemtransaction_set.count()
+        receipts.append(
+            {
+                "id": str(r.pk),
+                "title": r.title or "",
+                "linked_item_transaction_count": item_count,
+            }
+        )
+
+    income_rows = []
+    for inc in IncomeTransaction.objects.filter(user=user).order_by("-date", "-id")[:150]:
+        income_rows.append(
+            {
+                "amount": str(inc.amount),
+                "type": inc.type,
+                "description": inc.description or "",
+                "date": inc.date.strftime("%Y-%m-%d") if inc.date else "",
+            }
+        )
+
+    budgets = []
+    for b in Budget.objects.filter(user=user).select_related("category"):
+        budgets.append(
+            {
+                "title": b.title,
+                "balance": str(b.balance),
+                "limit": str(b.limit),
+                "category": b.category.title if b.category_id else "",
+                "percent_used": str(b.percentage),
+            }
+        )
+
+    recurring = []
+    for s in ScheduleExpense.objects.filter(user=user).select_related("account"):
+        recurring.append(
+            {
+                "title": s.title,
+                "cost": str(s.cost),
+                "cadence": s.get_type_display(),
+                "cadence_code": s.type,
+                "account": s.account.title if s.account_id else "",
+            }
+        )
+
+    return {
+        "item_transactions": items,
+        "receipts": receipts,
+        "income_transactions": income_rows,
+        "budgets": budgets,
+        "recurring_transactions": recurring,
+    }
+
+
+def _build_analytics_chart_system_instruction(request, chart_slot: int) -> str:
+    payload = _analytics_payload_for_llm(request)
+    blob = json.dumps(payload, indent=2, cls=DjangoJSONEncoder)
+    header = (
+        "You are Ledger AI helping on the user's **Analytics** page.\n"
+        "All numbers and claims must be grounded in the JSON below (aggregate, sum, or compare windows).\n\n"
+        "## Full ledger snapshot (JSON)\n"
+        "```json\n"
+        + blob
+        + "\n```\n\n"
+    )
+    if chart_slot == 1:
+        body = (
+            "## Chart panel A (spending)\n"
+            "Output format (**strict**):\n"
+            "1. First line: a Markdown `###` heading (max 8 words) describing the chart.\n"
+            "2. Next: **exactly one** fenced Mermaid block: ```mermaid … ``` with valid syntax.\n"
+            "3. **Stop** after the closing ``` — no tables, no second diagram, no extra paragraphs.\n\n"
+            "**Focus:** `item_transactions` — category and/or merchant mix, or time buckets (week/month). "
+            "You may use `receipts` / `receipt_id` only to enrich (e.g. receipts with many line items).\n"
+            "**Prefer:** `pie title …` or `xychart-beta` for numeric series.\n"
+        )
+    elif chart_slot == 2:
+        body = (
+            "## Chart panel B (income, budgets, recurring)\n"
+            "Same **strict** format as panel A: `###` title, then **one** ```mermaid block, then stop.\n\n"
+            "**Focus:** `income_transactions`, `budgets` (spent/balance vs limit), and `recurring_transactions`. "
+            "You may contrast recurring monthly load vs a simple total from item spend when data allows.\n"
+            "**Do not** produce a plain category pie chart (that is panel A). "
+            "**Prefer:** `xychart-beta` (e.g. budget limit vs spent), `flowchart LR`, or bar-like xychart comparisons.\n"
+        )
+    elif chart_slot == 3:
+        body = (
+            "## Panel C — Cut costs, spot increases, tips\n"
+            "Output **GitHub-flavored Markdown** (no raw HTML). Structure:\n"
+            "1. `##` title (max 10 words) about minimizing expenses / where spend grew.\n"
+            "2. A short section (2–5 sentences) explaining **where spending increased** using `item_transactions` dates: "
+            "prefer **last 30 calendar days vs the previous 30 days** (sum `cost` per category or merchant). "
+            "If there are too few days of data, compare **this calendar month to date vs the same-length prefix of last month** "
+            "or state clearly that the sample is thin.\n"
+            "3. `### Practical tips` followed by a **bullet list** (4–7 items) of concrete ways to reduce spend, "
+            "each tied when possible to their categories, merchants, `budgets`, or `recurring_transactions`.\n"
+            "4. **Exactly one** fenced Mermaid block ```mermaid … ``` that visualizes **increases or hot spots** "
+            "(e.g. `xychart-beta` with two series “prior window” vs “recent window” for top categories, or a bar-style comparison). "
+            "Do **not** add a second Mermaid block.\n"
+            "5. After the Mermaid block, at most **2 short sentences** closing encouragement — no extra diagrams.\n\n"
+            "Tone: supportive, specific, actionable. Use **bold** for key euro amounts and category names.\n"
+        )
+    elif chart_slot == 4:
+        body = (
+            "## Panel D — Income only (narrative + chart)\n"
+            "Use **only** `income_transactions` from the JSON for numbers and trends (do not discuss expense categories or item spend). "
+            "Output **GitHub-flavored Markdown** (no raw HTML). Structure:\n"
+            "1. `##` title (max 10 words) about their **income** picture (e.g. stability, mix, momentum).\n"
+            "2. A short section (2–5 sentences) on **how income changed**: prefer **last 30 calendar days vs the previous 30 days** "
+            "(sum `amount` overall and, if useful, by `type`). If data is thin, say so and use the best window you can "
+            "(e.g. this month vs last month).\n"
+            "3. `### Ideas to grow or stabilize income` followed by a **bullet list** (4–7 items) grounded in their `type` "
+            "labels, amounts, and patterns (diversification, timing, record-keeping, etc.).\n"
+            "4. **Exactly one** fenced Mermaid block ```mermaid … ``` visualizing income (e.g. `pie` by `type`, "
+            "`xychart-beta` comparing the two windows, or `flowchart LR` for income streams). "
+            "Do **not** add a second Mermaid block.\n"
+            "5. After the Mermaid block, at most **2 short sentences** — no extra diagrams.\n\n"
+            "Use **bold** for key euro totals and income `type` names.\n"
+        )
+    else:
+        body = (
+            "## Chart panel A (spending)\n"
+            "Output format (**strict**):\n"
+            "1. First line: a Markdown `###` heading (max 8 words) describing the chart.\n"
+            "2. Next: **exactly one** fenced Mermaid block: ```mermaid … ``` with valid syntax.\n"
+            "3. **Stop** after the closing ``` — no tables, no second diagram, no extra paragraphs.\n\n"
+            "**Focus:** `item_transactions` — category and/or merchant mix, or time buckets (week/month).\n"
+        )
+    if chart_slot == 3:
+        footer = (
+            "## Sparse data\n"
+            "If `item_transactions` is empty or nearly empty, say so briefly, give generic savings habits, "
+            "and still include one tiny valid Mermaid diagram (e.g. one node “Add transactions”).\n\n"
+            "## Safety\n"
+            "No `<script>`, no raw HTML outside Markdown/Mermaid.\n"
+        )
+    elif chart_slot == 4:
+        footer = (
+            "## Sparse data\n"
+            "If `income_transactions` is empty or nearly empty, say so briefly, suggest logging income entries, "
+            "and still include one tiny valid Mermaid diagram (e.g. one node “Add income”).\n\n"
+            "## Safety\n"
+            "No `<script>`, no raw HTML outside Markdown/Mermaid.\n"
+        )
+    else:
+        footer = (
+            "## Sparse data\n"
+            "If lists are empty, emit a minimal valid Mermaid diagram titled e.g. `No data yet` with one placeholder node "
+            "or pie slice explaining what to add.\n\n"
+            "## Safety\n"
+            "No `<script>`, no raw HTML outside Markdown/Mermaid.\n"
+        )
+    return header + body + footer
+
+
+ANALYTICS_CHART_USER_PROMPTS = {
+    1: (
+        "Generate **Chart A** for the Analytics page. Follow the system instructions exactly "
+        "(### title + single Mermaid block, nothing after)."
+    ),
+    2: (
+        "Generate **Chart B** for the Analytics page. Follow the system instructions exactly "
+        "(### title + single Mermaid block, nothing after). It must differ in chart type and topic from a category pie."
+    ),
+    3: (
+        "Generate **Panel C** for the Analytics page: narrative on spend increases, bullet tips to minimize expenses, "
+        "then exactly one Mermaid chart showing where costs rose — follow the system instructions."
+    ),
+    4: (
+        "Generate **Panel D** for the Analytics page: income-only narrative (trends, changes), bullet ideas to grow or "
+        "stabilize income, then exactly one Mermaid chart built only from income data — follow the system instructions."
+    ),
+}
+
+
 def _history_dicts_to_contents(history_dicts):
     contents = []
     for turn in history_dicts:
@@ -453,6 +744,52 @@ def _history_dicts_to_contents(history_dicts):
 
 @login_required
 def stream_chat(request):
+    analytics_slot_raw = request.GET.get("analytics_chart")
+    if analytics_slot_raw in ("1", "2", "3", "4"):
+        slot = int(analytics_slot_raw)
+        system_instruction = _build_analytics_chart_system_instruction(request, slot)
+        user_message = ANALYTICS_CHART_USER_PROMPTS[slot]
+
+        def analytics_event_stream():
+            contents = [
+                types.Content(
+                    role="user",
+                    parts=[types.Part.from_text(text=user_message)],
+                )
+            ]
+            assistant_text = ""
+            buffer = ""
+            try:
+                stream = client.models.generate_content_stream(
+                    model="gemini-3-flash-preview",
+                    contents=contents,
+                    config=types.GenerateContentConfig(
+                        system_instruction=system_instruction,
+                        temperature=0.62 if slot in (3, 4) else 0.55,
+                    ),
+                )
+                for chunk in stream:
+                    piece = getattr(chunk, "text", None) or ""
+                    if not piece:
+                        continue
+                    assistant_text += piece
+                    buffer += piece
+                    if len(buffer) > 24 or buffer.endswith(("\n", ".", "!", "?", "`")):
+                        yield f"data: {json.dumps({'text': buffer})}\n\n"
+                        buffer = ""
+                if buffer:
+                    yield f"data: {json.dumps({'text': buffer})}\n\n"
+            except Exception as exc:
+                err = f"\n\n**Something went wrong.** (`{type(exc).__name__}`: {exc})"
+                assistant_text += err
+                yield f"data: {json.dumps({'text': err})}\n\n"
+            yield f"data: {json.dumps({'done': True})}\n\n"
+
+        resp = StreamingHttpResponse(analytics_event_stream(), content_type="text/event-stream")
+        resp["Cache-Control"] = "no-cache"
+        resp["X-Accel-Buffering"] = "no"
+        return resp
+
     insight_mode = request.GET.get("insight") in ("1", "true", "yes")
     raw_message = (request.GET.get("message") or "").strip()
 

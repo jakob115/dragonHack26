@@ -10,27 +10,21 @@
 {% block content %}
 <div class="ticker">
     <div class="tick-item">
-        <div class="tick-label">Net worth</div>
-        <div class="tick-val">€{{ balance }}</div>
-        <div class="tick-delta text-green">↑ +€1,240 MTD</div>
-    </div>
-    <div class="tick-sep"></div>
-    <div class="tick-item">
         <div class="tick-label">Savings rate</div>
-        <div class="tick-val">38.75%</div>
-        <div class="tick-delta text-green">↑ +4.2pp</div>
+        <div class="tick-val">{% if savings_rate_pct is not None %}{{ savings_rate_pct|floatformat:1 }}%{% else %}—{% endif %}</div>
+        <div class="tick-delta {% if savings_rate_delta_pp > 0 %}text-green{% elif savings_rate_delta_pp < 0 %}text-red{% endif %}">{% if savings_rate_delta_pp is not None %}{% if savings_rate_delta_pp >= 0 %}↑{% else %}↓{% endif %} {{ savings_rate_delta_pp|floatformat:1 }}pp vs last month{% elif income_mtd %}No prior rate{% else %}Log income to compute{% endif %}</div>
     </div>
     <div class="tick-sep"></div>
     <div class="tick-item">
         <div class="tick-label">Monthly burn</div>
-        <div class="tick-val">€1,960</div>
-        <div class="tick-delta text-red">↑ +€240 vs last</div>
+        <div class="tick-val">€{{ monthly_burn|floatformat:2 }}</div>
+        <div class="tick-delta text-muted">{% if expenses_prev_month %}Prior month €{{ expenses_prev_month|floatformat:2 }}{% else %}—{% endif %}</div>
     </div>
     <div class="tick-sep"></div>
     <div class="tick-item">
         <div class="tick-label">Recurring total</div>
-        <div class="tick-val">€890</div>
-        <div class="tick-delta">5 active</div>
+        <div class="tick-val">€{{ recurring_monthly_total|floatformat:2 }}</div>
+        <div class="tick-delta">{% if recurring_active_count %}{{ recurring_active_count }} active{% else %}None{% endif %}</div>
     </div>
     <div class="tick-sep"></div>
     <div class="tick-item">
@@ -42,27 +36,27 @@
 
 <div class="nw-hero">
     <div>
-        <div class="nw-main-label">Total net worth · April 2025</div>
+        <div class="nw-main-label">Total net worth · {{ dashboard_month_label }}</div>
         <div class="nw-amount"><span class="currency">€</span>{{ net_worth_int }}<span class="nw-decimal">.{{ net_worth_dec }}</span></div>
         <div class="nw-updated">{{ accounts_count }} accounts · last updated just now</div>
     </div>
     <div class="nw-line"></div>
     <div class="nw-stat">
-        <div class="nw-stat-label">Income</div>
-        <div class="nw-stat-val pos">+€3,200</div>
-        <div class="nw-stat-sub">Apr salary</div>
+        <div class="nw-stat-label">Income (MTD)</div>
+        <div class="nw-stat-val pos">+€{{ income_mtd|floatformat:2 }}</div>
+        <div class="nw-stat-sub">{% if income_count %}{{ income_count }} recorded this month{% else %}No income this month{% endif %}</div>
     </div>
     <div class="nw-line"></div>
     <div class="nw-stat">
         <div class="nw-stat-label">Expenses</div>
-        <div class="nw-stat-val neg">−€1,960</div>
-        <div class="nw-stat-sub">61% of budget</div>
+        <div class="nw-stat-val neg">−€{{ expenses_mtd|floatformat:2 }}</div>
+        <div class="nw-stat-sub">{% if budget_has_limits %}{{ budget_health_pct|floatformat:0 }}% of budget limits · MTD{% else %}Item expenses MTD{% endif %}</div>
     </div>
     <div class="nw-line"></div>
     <div class="nw-stat">
         <div class="nw-stat-label">Saved</div>
-        <div class="nw-stat-val pos">+€1,240</div>
-        <div class="nw-stat-sub">38.7% rate</div>
+        <div class="nw-stat-val {% if saved_mtd_negative %}neg{% else %}pos{% endif %}">{% if saved_mtd_negative %}−€{{ saved_mtd_abs|floatformat:2 }}{% else %}+€{{ saved_mtd|floatformat:2 }}{% endif %}</div>
+        <div class="nw-stat-sub">{% if savings_rate_pct is not None %}{{ savings_rate_pct|floatformat:1 }}% savings rate{% elif income_mtd %}No income logged{% else %}Add income to see rate{% endif %}</div>
     </div>
 </div>
 
@@ -80,9 +74,9 @@
     </div>
     <div class="mc">
         <div class="mc-label">Next recurring</div>
-        <div class="mc-val">{% if next_recurring %}{{ next_recurring.title }} {% else %} None {% endif %} </div>
-        <span class="mc-tag gold-dim text-gold">{% if next_recurring %} payment of · {{ next_recurring.cost }} {% else %} --- · --- {% endif %}</span>
-        <div class="mc-sub">{% if next_recurring %}{{ next_recurring.type }} {% else %} --- {% endif %}</div>
+        <div class="mc-val">{% if next_recurring %}{{ next_recurring.first.title }} {% else %} None {% endif %} </div>
+        <span class="mc-tag gold-dim text-gold">{% if next_recurring %} payment of · {{ next_recurring.first.cost }} {% else %} --- · --- {% endif %}</span>
+        <div class="mc-sub">{% if next_recurring %}{{ next_recurring.first.type }} {% else %} --- {% endif %}</div>
     </div>
     <div class="mc">
         <div class="mc-label">Needs review</div>
@@ -91,10 +85,10 @@
         <div class="mc-sub">Unknown merchants</div>
     </div>
     <div class="mc">
-        <div class="mc-label">Categories created</div>
-        <div class="mc-val">2</div>
-        <span class="mc-tag blue-dim">by AI this month</span>
-        <div class="mc-sub">Specialty Coffee, Tram</div>
+        <div class="mc-label">Income</div>
+        <div class="mc-val">€{{ income_mtd|floatformat:2 }}</div>
+        <span class="mc-tag blue-dim">{% if income_count %}{{ income_count }} this month{% else %}MTD{% endif %}</span>
+        <div class="mc-sub">{% if income_latest %}{{ income_latest.type }}{% if income_latest.description %} · {{ income_latest.description|truncatechars:40 }}{% endif %}{% else %}No income logged this month{% endif %}</div>
     </div>
 </div>
 
