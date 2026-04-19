@@ -33,13 +33,68 @@ def home(request):
     context['balance'] = balance
     return render(request, 'home.html', context)
 
+
 @login_required
 def delete_transaction_receipt(request, receipt_id):
     object_id = ObjectId(receipt_id)
     receipt = ReceiptTransaction.objects.get(id=object_id)
     receipt.delete()
+    return redirect("transactions")
     
-    pass
+@login_required
+def delete_transaction_item(request, item_id):
+    object_id = ObjectId(item_id)
+    item = ItemTransaction.objects.get(id=object_id)
+    item.delete()
+    return redirect("transactions")
+    
+@login_required
+def edit_transaction_item(request, item_id):
+    object_id = ObjectId(item_id)
+    item = ItemTransaction.objects.get(id=object_id)
+    request.session["editing_item_id"] = item_id
+    return render(request, 'edit_item.html', {"active_page": "edit_item",
+                                              "item": item,
+                                              })
+
+@login_required
+def edit_item(request):
+
+    item_id = request.session.get("editing_item_id")
+    if not item_id:
+        return redirect("transactions")
+    object_id = ObjectId(item_id)
+    item = ItemTransaction.objects.get(id=object_id)
+
+    new_name = request.POST.get("name")
+    new_merchant = request.POST.get("merchant")
+    new_cost = request.POST.get("cost")
+    new_quantity = request.POST.get("quantity")
+    new_category = request.POST.get("category")
+    new_date = request.POST.get("date")
+
+    if new_name is not None:
+        item.name = new_name
+    if new_merchant is not None:
+        item.merchant = new_merchant
+    if new_cost is not None:
+        item.cost = new_cost
+    if new_quantity is not None:
+        item.quantity = new_quantity
+    if new_category:
+        item.category = Category.objects.get(title=new_category)
+    if new_date:
+        item.date = new_date
+    
+    item.save()
+    del request.session["editing_item_id"]
+    return redirect("transactions")
+
+
+
+
+
+
 
 @login_required
 def transactions(request):

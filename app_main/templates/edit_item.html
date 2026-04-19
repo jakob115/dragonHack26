@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+
+{% block title %}Ledger | Edit Item{% endblock %}
+{% block page_title %}Add expense{% endblock %}
+
+{% block content %}
+<div class="stack">
+    <div class="panel">
+        <div class="panel-head">
+            <div class="panel-title">Edit item</div>
+            <div class="panel-link">manual entry</div>
+        </div>
+        <div class="panel-body">
+            <form method="post" action="{% url 'edit_item' %}">
+                {% csrf_token %}
+
+                <div class="qa-fields"></div>
+
+                <div id="expense-items">
+                    <div class="qa-fields">
+                        <div class="qa-field">
+                            <div class="qa-label">Name</div>
+                            <input class="qa-input" type="text" name="name" value="{{ item.name }}" placeholder="e.g. Apples, Bicycle, ...">
+                        </div>
+                        <div class="qa-field">
+                            <div class="qa-label">Merchant</div>
+                            <input class="qa-input" type="text" name="merchant" value="{{ item.merchant }}" placeholder="e.g. Mercator, Bolt, Telekom">
+                        </div>
+                        <div class="qa-field">
+                            <div class="qa-label">Cost</div>
+                            <input class="qa-input" type="text" name="cost" value="{{ item.cost }}" placeholder="€ 0.00">
+                        </div>
+                        <div class="qa-field">
+                            <div class="qa-label">Quantity</div>
+                            <input class="qa-input" type="text" name="quantity" value="{{ item.quantity }}" placeholder="1.5">
+                        </div>
+                        <div class="qa-field">
+                            <div class="qa-label">Category</div>
+                            <select class="qa-input" name="category">
+                                <option value="">Select a category</option>
+                                <option value="Groceries" {% if item.category.title == "Groceries" %}selected{% endif %}>Groceries</option>
+                                <option value="Dining out" {% if item.category.title == "Dining out" %}selected{% endif %}>Dining out</option>
+                                <option value="Transport" {% if item.category.title == "Transport" %}selected{% endif %}>Transport</option>
+                                <option value="Clothing" {% if item.category.title == "Clothing" %}selected{% endif %}>Clothing</option>
+                                <option value="Medical" {% if item.category.title == "Medical" %}selected{% endif %}>Medical</option>       
+                                <option value="Entertainment" {% if item.category.title == "Entertainment" %}selected{% endif %}>Entertainment</option>
+                                <option value="Gifts" {% if item.category.title == "Gifts" %}selected{% endif %}>Gifts</option>
+                                <option value="Travel" {% if item.category.title == "Travel" %}selected{% endif %}>Travel</option>
+                                <option value="Luxury" {% if item.category.title == "Luxury" %}selected{% endif %}>Luxury</option>  
+                                <option value="Home & Garden" {% if item.category.title == "Home & Garden" %}selected{% endif %}>Home & Garden</option>  
+                                <option value="Electronics" {% if item.category.title == "Electronics" %}selected{% endif %}>Electronics</option>  
+                                <option value="Miscellanious" {% if item.category.title == "Miscellanious" %}selected{% endif %}>Miscellanious</option>                              </select>
+                       </div>
+                            <div class="qa-field">
+                            <div class="qa-label">Date</div>
+                            <input class="qa-input" type="text" name="date" value="{{ item.date }}" placeholder="e.g. April 19, 2026">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-spacer"></div>
+
+                <div class="qa-btns">
+                    <button class="btn btn-gold btn-flex" type="submit">Save changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extrascripts %}
+<script>
+(() => {
+    const addButton = document.getElementById("add-expense-row");
+    const items = document.getElementById("expense-items");
+    let itemIndex = 1;
+
+    if (!addButton || !items) return;
+
+    addButton.addEventListener("click", () => {
+        const row = document.createElement("div");
+        row.className = "qa-fields";
+        row.innerHTML = `
+            <div class="section-spacer"></div>
+            <div class="section-spacer"></div>
+            <div class="qa-field">
+                <div class="qa-label">Name</div>
+                <input class="qa-input" type="text" name="item_name${itemIndex}" placeholder="e.g. Apples, Bicycle, ...">
+            </div>
+            <div class="qa-field">
+                <div class="qa-label">Cost</div>
+                <input class="qa-input" type="text" name="item_cost${itemIndex}" placeholder="€ 0.00">
+            </div>
+            <div class="qa-field">
+                <div class="qa-label">Quantity</div>
+                <input class="qa-input" type="text" name="item_quantity${itemIndex}" placeholder="1.5">
+            </div>
+            <div class="qa-field">
+                <div class="qa-label">Category</div>
+                <select class="qa-input" name="item_category${itemIndex}">
+                    <option value="">Select a category</option>
+                    <option value="Groceries">Groceries</option>
+                    <option value="Dining out">Dining out</option>
+                    <option value="Transport">Transport</option>
+                    <option value="Clothing">Clothing</option>
+                    <option value="Medical">Medical</option>       
+                    <option value="Entertainment">Entertainment</option>
+                    <option value="Gifts">Gifts</option>
+                    <option value="Travel">Travel</option>
+                    <option value="Luxury">Luxury</option>  
+                    <option value="Home & Garden">Home & Garden</option>  
+                    <option value="Electronics">Electronics</option>  
+                    <option value="Miscellanious">Miscellanious</option>                              </select>
+            </div>
+        </div>
+    </div>
+        `;
+
+        items.appendChild(row);
+        itemIndex += 1;
+    });
+})();
+</script>
+{% endblock %}

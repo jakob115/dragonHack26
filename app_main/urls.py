@@ -20,4 +20,7 @@ urlpatterns = [
     path('submit-expense/', views.submit_expense, name="submit_expense"),
     path('add-money/', views.add_money, name="add_money"),
     path('delete-transaction-receipt/<str:receipt_id>', views.delete_transaction_receipt, name="delete-transaction-receipt"),   
+    path('delete-transaction-item/<str:item_id>', views.delete_transaction_item, name="delete-transaction-item"),   
+    path('edit-transaction-item/<str:item_id>', views.edit_transaction_item, name="edit-transaction-item"),   
+    path('edit-item/', views.edit_item, name="edit_item"),   
 ]
