@@ -75,7 +75,7 @@
     <div class="mc">
         <div class="mc-label">Next recurring</div>
         <div class="mc-val">{% if next_recurring %}{{ next_recurring.first.title }} {% else %} None {% endif %} </div>
-        <span class="mc-tag gold-dim text-gold">{% if next_recurring %} payment of · {{ next_recurring.first.cost }} {% else %} --- · --- {% endif %}</span>
+        <span class="mc-tag gold-dim text-gold">{% if next_recurring %} payment of · €{{ next_recurring.first.cost }} {% else %} --- · --- {% endif %}</span>
         <div class="mc-sub">{% if next_recurring %}{{ next_recurring.first.type }} {% else %} --- {% endif %}</div>
     </div>
     <div class="mc">
@@ -96,33 +96,19 @@
     <div class="panel">
         <div class="panel-head">
             <div class="panel-title">Spending breakdown</div>
-            <div class="panel-link">full analytics →</div>
+            <div class="panel-link"> <a href="analytics">full analytics →</a></div>
         </div>
         <div class="panel-body">
+            {% for item in budgets %}
             <div class="cat-item">
                 <div class="cat-top">
-                    <div class="cat-name"><div class="cat-pip gold-bg"></div>Groceries & supermarkets</div>
-                    <div class="cat-amt">€706 / €800</div>
+                    <div class="cat-name"><div class="cat-pip gold-bg"></div>{{ item.title }}</div>
+                    <div class="cat-amt">€{{ item.balance }} / €{{ item.limit }}</div>
                 </div>
-                <div class="cat-track"><div class="cat-fill gold-bg" style="width:88%"></div></div>
-                <div class="cat-pct">88% of budget · on track</div>
+                <div class="cat-track"><div class="cat-fill gold-bg" style="width:{{ item.percentage }}%"></div></div>
+                <div class="cat-pct">{{ item.percentage }}% of budget · {% if item.percentage < 100 %} on track {% else %} over budget {% endif %}</div>
             </div>
-            <div class="cat-item">
-                <div class="cat-top">
-                    <div class="cat-name"><div class="cat-pip red-bg"></div>Specialty coffee shops</div>
-                    <div class="cat-amt text-red">€353 / €200</div>
-                </div>
-                <div class="cat-track"><div class="cat-fill" style="width:100%;background:#E05555"></div></div>
-                <div class="cat-pct text-red">176% — €153 over budget</div>
-            </div>
-            <div class="cat-item">
-                <div class="cat-top">
-                    <div class="cat-name"><div class="cat-pip blue-bg"></div>Public transport</div>
-                    <div class="cat-amt">€274 / €350</div>
-                </div>
-                <div class="cat-track"><div class="cat-fill blue-bg" style="width:78%"></div></div>
-                <div class="cat-pct">78% of budget · on track</div>
-            </div>
+            {% endfor %}
         </div>
     </div>
 
