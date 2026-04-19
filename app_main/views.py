@@ -174,14 +174,22 @@ def create_recurring(request):
         return redirect("recurring")
 
     recurring_user = request.user
-    recurring_title = (request.POST.get("title") or "").strip()
-    recurring_cost = request.POST.get("cost")
-    recurring_type = request.POST.get("type")
-    recurring_account_id = request.POST.get("account")
+    recurring_title = request.POST.get("title") or ""
+    recurring_cost_raw = request.POST.get("cost") or ""
+    recurring_type = request.POST.get("type") or ""
+    recurring_account_id = request.POST.get("account") or ""
     recurring_account = None
     valid_types = {choice[0] for choice in ScheduleExpense.TYPE_OF_EXPENSE}
 
-    if not recurring_title or not recurring_cost or recurring_type not in valid_types:
+    if not recurring_title or not recurring_cost_raw or recurring_type not in valid_types:
+        return redirect("recurring")
+
+    try:
+        recurring_cost = Decimal(str(recurring_cost_raw).strip().replace(",", "."))
+    except (InvalidOperation, TypeError, ValueError):
+        return redirect("recurring")
+
+    if recurring_cost <= 0:
         return redirect("recurring")
 
     if recurring_account_id:
@@ -293,19 +301,20 @@ def _category_and_descendant_ids(category):
         ids.extend(_category_and_descendant_ids(child))
     return ids
 
-
 @login_required
 def add_budget(request):
     if request.method != "POST":
         return redirect("budgets")
-    title = (request.POST.get("title") or "").strip()
-    limit_raw = request.POST.get("limit")
-    category_id = request.POST.get("category")
+    title = request.POST.get("title") or ""
+    limit_raw = request.POST.get("limit") or ""
+    category_id = request.POST.get("category") or ""
     if not title or limit_raw in (None, "") or not category_id:
         return redirect("budgets")
     try:
-        limit_val = Decimal(str(limit_raw).replace(",", "."))
-    except (InvalidOperation, ValueError):
+        limit_val = Decimal(str(limit_raw).strip().replace(",", "."))
+    except (InvalidOperation, TypeError, ValueError):
+        return redirect("budgets")
+    if limit_val <= 0:
         return redirect("budgets")
     try:
         cat = Category.objects.get(pk=category_id)
@@ -694,29 +703,48 @@ def register(request):
 def quick_add_item(request):
     if request.method != "POST":
         return JsonResponse({"error": "POST required"}, status=405)
-    
 
-    account_id = request.POST.get("account", "")
+    account_id = request.POST.get("account") or ""
     curr_account = None
     if account_id:
         curr_account = Account.objects.filter(pk=account_id, user=request.user).first()
         if curr_account is None:
             return JsonResponse({"error": "Invalid account"}, status=400)
 
-    curr_category = request.POST.get("category")
-    curr_category = Category.objects.get(title=curr_category)
-    curr_cost = request.POST.get("cost")
+    item_name = request.POST.get("name") or ""
+    item_quantity_raw = request.POST.get("quantity") or ""
+    item_cost_raw = request.POST.get("cost") or ""
+    item_merchant = request.POST.get("merchant") or ""
+    category_title = request.POST.get("category") or ""
+
+    if not item_name or not item_quantity_raw or not item_cost_raw or not category_title:
+        return JsonResponse({"error": "Name, quantity, cost, and category are required"}, status=400)
+
+    curr_category = Category.objects.filter(title=category_title).first()
+    if curr_category is None:
+        return JsonResponse({"error": "Invalid category"}, status=400)
+
+    try:
+        curr_cost = Decimal(str(item_cost_raw).strip().replace(",", "."))
+        curr_quantity = Decimal(str(item_quantity_raw).strip().replace(",", "."))
+    except (InvalidOperation, TypeError, ValueError):
+        return JsonResponse({"error": "Invalid cost or quantity"}, status=400)
+
+    if curr_cost <= 0 or curr_quantity <= 0:
+        return JsonResponse({"error": "Cost and quantity must be greater than zero"}, status=400)
 
     new_item = ItemTransaction.objects.create(user=request.user,
                                    cost=curr_cost,
-                                   quantity=request.POST.get("quantity"),
+                                   quantity=curr_quantity,
                                    category=curr_category,
-                                   merchant=request.POST.get("merchant"),
-                                   name=request.POST.get("name"),
+                                   merchant=item_merchant or None,
+                                   name=item_name,
                                    account=curr_account, 
                                    date=timezone.localdate())
 
-    curr_account.balance += curr_cost
+    if curr_account is not None:
+        curr_account.balance -= curr_cost
+        curr_account.save(update_fields=["balance"])
 
     cat = new_item.category
     budgets = Budget.objects.filter(user=request.user, category__title=cat.title)
@@ -724,9 +752,6 @@ def quick_add_item(request):
         for budget in budgets:
             budget.balance += Decimal(new_item.cost)
             budget.save()
-    if cat.parent:
-        cat.parent.budget += Decimal(new_item.cost)
-        cat.parent.save()
 
     return render(request, 'home.html', {"active_page": "dashboard"})
 
@@ -739,35 +764,62 @@ def submit_expense(request):
     if request.method != "POST":
         return JsonResponse({"error": "POST required"}, status=405)
 
-    receipt_merchant = request.POST.get("merchant")
-    account_id = request.POST.get("account", "")
+    receipt_merchant = request.POST.get("merchant") or ""
+    account_id = request.POST.get("account") or ""
     receipt_account = None
     if account_id:
-        curr_account = Account.objects.filter(pk=account_id, user=request.user).first()
-        if curr_account is None:
+        receipt_account = Account.objects.filter(pk=account_id, user=request.user).first()
+        if receipt_account is None:
             return JsonResponse({"error": "Invalid account"}, status=400)    
+
+    created_items = 0
     receipt_obj = ReceiptTransaction.objects.create(user=request.user,
                                       title="Manually inputted reciept")
 
     i = 0
     while f"item_name{i}" in request.POST:
-        curr_category = request.POST.get(f"item_category{i}")
-        curr_category = Category.objects.get(title=curr_category)
+        item_name = request.POST.get(f"item_name{i}") or ""
+        item_quantity_raw = request.POST.get(f"item_quantity{i}") or ""
+        item_cost_raw = request.POST.get(f"item_cost{i}") or ""
+        category_title = request.POST.get(f"item_category{i}") or ""
 
-        curr_cost = request.POST.get(f"item_cost{i}")
+        if not item_name and not item_quantity_raw and not item_cost_raw and not category_title:
+            i += 1
+            continue
+
+        if not item_name or not item_quantity_raw or not item_cost_raw or not category_title:
+            receipt_obj.delete()
+            return JsonResponse({"error": f"Item {i + 1} is missing required fields"}, status=400)
+
+        curr_category = Category.objects.filter(title=category_title).first()
+        if curr_category is None:
+            receipt_obj.delete()
+            return JsonResponse({"error": f"Item {i + 1} has an invalid category"}, status=400)
+
+        try:
+            curr_cost = Decimal(str(item_cost_raw).strip().replace(",", "."))
+            curr_quantity = Decimal(str(item_quantity_raw).strip().replace(",", "."))
+        except (InvalidOperation, TypeError, ValueError):
+            receipt_obj.delete()
+            return JsonResponse({"error": f"Item {i + 1} has invalid cost or quantity"}, status=400)
+
+        if curr_cost <= 0 or curr_quantity <= 0:
+            receipt_obj.delete()
+            return JsonResponse({"error": f"Item {i + 1} must have positive cost and quantity"}, status=400)
 
         new_item = ItemTransaction.objects.create(user=request.user,
                                    cost=curr_cost,
-                                   quantity=request.POST.get(f"item_quantity{i}"),
+                                   quantity=curr_quantity,
                                    category=curr_category,
-                                   merchant=receipt_merchant,
+                                   merchant=receipt_merchant or None,
                                    date=timezone.localdate(),
                                    receipt=receipt_obj,
                                    account=receipt_account,
-                                   name=request.POST.get(f"item_name{i}"))
-        
+                                   name=item_name)
 
-        receipt_account.budget += curr_cost
+        if receipt_account is not None:
+            receipt_account.balance -= curr_cost
+            receipt_account.save(update_fields=["balance"])
 
         cat = new_item.category
         budgets = Budget.objects.filter(user=request.user, category__title=cat.title)
@@ -775,12 +827,13 @@ def submit_expense(request):
             for budget in budgets:
                 budget.balance += Decimal(new_item.cost)
                 budget.save()
-        if cat.parent:
-            cat.parent.budget += Decimal(new_item.cost)
-            cat.parent.save()
 
+        created_items += 1
         i += 1
 
+    if created_items == 0:
+        receipt_obj.delete()
+        return JsonResponse({"error": "At least one complete expense item is required"}, status=400)
 
     return render(request, 'home.html', {"active_page": "dashboard"})
 
@@ -802,11 +855,13 @@ def submit_money(request):
         return JsonResponse({"error": "Amount and type are required"}, status=400)
 
     try:
-        curr_amount = Decimal(amount_raw)
-    except (InvalidOperation, TypeError):
+        curr_amount = Decimal(str(amount_raw).strip().replace(",", "."))
+    except (InvalidOperation, TypeError, ValueError):
         return JsonResponse({"error": "Invalid amount"}, status=400)
+    if curr_amount <= 0:
+        return JsonResponse({"error": "Amount must be greater than zero"}, status=400)
 
-    account_id = request.POST.get("account", "")
+    account_id = request.POST.get("account") or ""
     curr_account = None
     if account_id:
         curr_account = Account.objects.filter(pk=account_id, user=request.user).first()
