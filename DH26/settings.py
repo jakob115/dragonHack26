@@ -28,7 +28,7 @@ SECRET_KEY = 'django-insecure-yvu8^n3ymu*uup*&iitt)rx&i&#%hv%xcyo_lazj$wze1q*cbm
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-ALLOWED_HOSTS = ['10.32.251.60', 'localhost', '10.32.248.107', 'ledger.ondigitalocean.app']
+ALLOWED_HOSTS = ['10.32.251.60', 'localhost', '10.32.248.107', 'ledger.ondigitalocean.app', 'ledger-q4c47.ondigitalocean.app']
 
 # Setup .env file to use keys
 env = environ.Env()
