@@ -9,6 +9,7 @@ from django.utils import timezone
 import calendar
 from datetime import datetime, timedelta
 from bson import ObjectId
+from django_mongodb_backend.expressions.builtins import order_by
 from google.genai import types
 from google import genai
 
@@ -70,6 +71,7 @@ def home(request):
         total_balance=Sum("balance"),
         total_limit=Sum("limit"),
     )
+    context['budgets'] = Budget.objects.filter(user=request.user).order_by("-id")[:3]
     total_budget_balance = budget_agg["total_balance"] or Decimal("0")
     total_budget_limit = budget_agg["total_limit"] or Decimal("0")
     if total_budget_limit > 0:
