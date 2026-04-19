@@ -3,6 +3,12 @@
 {% block title %}Ledger | AI Chat{% endblock %}
 {% block page_title %}AI Chat{% endblock %}
 
+{% block extrastyle %}
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.7/dist/purify.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js" crossorigin="anonymous"></script>
+{% endblock %}
+
 {% block topbar_actions %}
 <a class="btn" href="{% url 'dashboard' %}">Back to dashboard</a>
 {% endblock %}
@@ -12,33 +18,138 @@
     <div class="chat-header">
         <div>
             <div class="panel-title">Ledger AI assistant</div>
-            <div class="chat-subtitle">Ask about spending trends, budgets, and receipt insights.</div>
+            <div class="chat-subtitle">Markdown, tables, and Mermaid charts are supported in replies.</div>
         </div>
         <span class="chat-status">Online</span>
     </div>
 
-    <div class="chat-thread">
-        <article class="chat-msg chat-msg-ai">
-            <div class="chat-bubble">
-                You spent 12% less on transport this month. Want a weekly summary every Sunday?
-            </div>
-        </article>
-        <article class="chat-msg chat-msg-user">
-            <div class="chat-bubble">
-                Yes, and also tell me if coffee spend is above €40/week.
-            </div>
-        </article>
-        <article class="chat-msg chat-msg-ai">
-            <div class="chat-bubble">
-                Done. I will alert you if coffee spend crosses €40 in a week and include it in your Sunday report.
-            </div>
-        </article>
-    </div>
+    <div id="chat-thread" class="chat-thread"></div>
 
-    <form class="chat-composer" action="#" method="post">
+    <div class="chat-composer">
         <label class="sr-only" for="chat-input">Ask Ledger AI</label>
-        <input id="chat-input" class="chat-input" type="text" placeholder="Ask Ledger AI anything about your finances...">
-        <button class="btn btn-gold" type="submit">Send</button>
-    </form>
+        <input id="chat-input" class="chat-input" type="text" placeholder="Ask about spending, budgets, or trends…" autocomplete="off">
+        <button id="btn_send_msg" class="btn btn-gold" type="button">Send</button>
+    </div>
 </section>
+{% endblock %}
+
+{% block extrascripts %}
+<script>
+(() => {
+    const streamUrl = "{% url 'stream' %}";
+
+    function syncMermaidTheme() {
+        if (typeof mermaid === "undefined") return;
+        const light = document.documentElement.getAttribute("data-theme") === "light";
+        mermaid.initialize({
+            startOnLoad: false,
+            securityLevel: "strict",
+            theme: light ? "neutral" : "dark",
+        });
+    }
+
+    function promoteMermaidBlocks(root) {
+        root.querySelectorAll("pre code.language-mermaid").forEach((code) => {
+            const pre = code.parentElement;
+            if (!pre || pre.tagName !== "PRE") return;
+            const graph = code.textContent || "";
+            const div = document.createElement("div");
+            div.className = "mermaid";
+            div.textContent = graph.trim();
+            pre.replaceWith(div);
+        });
+    }
+
+    function renderAssistantMarkdown(bubble, markdown) {
+        if (typeof marked === "undefined" || typeof DOMPurify === "undefined") {
+            bubble.textContent = markdown;
+            return;
+        }
+        const rawHtml = marked.parse(markdown, { breaks: true, gfm: true });
+        bubble.innerHTML = DOMPurify.sanitize(rawHtml, { USE_PROFILES: { html: true } });
+        bubble.classList.add("chat-bubble-md");
+        promoteMermaidBlocks(bubble);
+        if (typeof mermaid !== "undefined") {
+            syncMermaidTheme();
+            try {
+                mermaid.run({ nodes: bubble.querySelectorAll(".mermaid") });
+            } catch (e) {
+                console.warn("Mermaid render skipped:", e);
+            }
+        }
+    }
+
+    const input = document.getElementById("chat-input");
+    const chat = document.getElementById("chat-thread");
+    const btn = document.getElementById("btn_send_msg");
+    if (!input || !chat || !btn) return;
+
+    let eventSource = null;
+
+    function sendMessage() {
+        const message = input.value.trim();
+        if (!message) return;
+        input.value = "";
+
+        const userArt = document.createElement("article");
+        userArt.classList.add("chat-msg", "chat-msg-user");
+        const userBubble = document.createElement("div");
+        userBubble.classList.add("chat-bubble");
+        userBubble.textContent = message;
+        userArt.appendChild(userBubble);
+        chat.appendChild(userArt);
+
+        const botMsg = document.createElement("article");
+        botMsg.classList.add("chat-msg", "chat-msg-ai");
+        const chatBubble = document.createElement("div");
+        chatBubble.classList.add("chat-bubble");
+        botMsg.appendChild(chatBubble);
+        chat.appendChild(botMsg);
+
+        if (eventSource) eventSource.close();
+
+        let fullText = "";
+        eventSource = new EventSource(`${streamUrl}?message=${encodeURIComponent(message)}`);
+
+        eventSource.onmessage = (event) => {
+            let data;
+            try {
+                data = JSON.parse(event.data);
+            } catch {
+                return;
+            }
+            if (data.done) {
+                eventSource.close();
+                renderAssistantMarkdown(chatBubble, fullText);
+                chat.scrollTop = chat.scrollHeight;
+                return;
+            }
+            if (typeof data.text === "string") {
+                fullText += data.text;
+                chatBubble.textContent = fullText;
+                chat.scrollTop = chat.scrollHeight;
+            }
+        };
+
+        eventSource.onerror = () => {
+            eventSource.close();
+            if (!fullText.trim()) {
+                chatBubble.textContent = "Could not reach the assistant. Check your connection and try again.";
+            } else {
+                renderAssistantMarkdown(chatBubble, fullText);
+            }
+        };
+    }
+
+    btn.addEventListener("click", sendMessage);
+    input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+
+    syncMermaidTheme();
+})();
+</script>
 {% endblock %}

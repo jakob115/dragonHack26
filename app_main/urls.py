@@ -26,5 +26,6 @@ urlpatterns = [
     path('edit-transaction-item/<str:item_id>', views.edit_transaction_item, name="edit-transaction-item"),
     path('edit-item/', views.edit_item, name="edit_item"),
     path('submit-money/', views.submit_money, name="submit_money"),
+    path('stream/', views.stream_chat, name="stream")
 ]
 
