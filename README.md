@@ -4,7 +4,7 @@
 Our product is a cross-platoform web application, where users can track, record and analize their finances. It aims to help users keep their spendings organized in an easily viewable and understandable format. 
 
 ## Implementation description:
-We used djengo as the framework of our product and MongoDB as the database. We used the gemini API to categorize receipt images and analize data, to later display it in graph and written formats to the users.
+We used djengo as the framework of our product and MongoDB as the database. As we wished to make the uploading of new data to the website as easy as possible and as such decided to allow the implementing of images. We then used the gemini API to categorize images of receipt as well as later analize data from the database, to later display it in graph and written formats to the users. 
 
 
 
