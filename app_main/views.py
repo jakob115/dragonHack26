@@ -679,17 +679,29 @@ def register(request):
 def quick_add_item(request):
     if request.method != "POST":
         return JsonResponse({"error": "POST required"}, status=405)
+    
+
+    account_id = request.POST.get("account", "")
+    curr_account = None
+    if account_id:
+        curr_account = Account.objects.filter(pk=account_id, user=request.user).first()
+        if curr_account is None:
+            return JsonResponse({"error": "Invalid account"}, status=400)
 
     curr_category = request.POST.get("category")
     curr_category = Category.objects.get(title=curr_category)
+    curr_cost = request.POST.get("cost")
 
     new_item = ItemTransaction.objects.create(user=request.user,
-                                   cost=request.POST.get("cost"),
+                                   cost=curr_cost,
                                    quantity=request.POST.get("quantity"),
                                    category=curr_category,
                                    merchant=request.POST.get("merchant"),
                                    name=request.POST.get("name"),
+                                   account=curr_account, 
                                    date=timezone.localdate())
+
+    curr_account.balance += curr_cost
 
     cat = new_item.category
     budgets = Budget.objects.filter(user=request.user, category__title=cat.title)
@@ -713,7 +725,12 @@ def submit_expense(request):
         return JsonResponse({"error": "POST required"}, status=405)
 
     receipt_merchant = request.POST.get("merchant")
-    
+    account_id = request.POST.get("account", "")
+    receipt_account = None
+    if account_id:
+        curr_account = Account.objects.filter(pk=account_id, user=request.user).first()
+        if curr_account is None:
+            return JsonResponse({"error": "Invalid account"}, status=400)    
     receipt_obj = ReceiptTransaction.objects.create(user=request.user,
                                       title="Manually inputted reciept")
 
@@ -722,14 +739,20 @@ def submit_expense(request):
         curr_category = request.POST.get(f"item_category{i}")
         curr_category = Category.objects.get(title=curr_category)
 
+        curr_cost = request.POST.get(f"item_cost{i}")
+
         new_item = ItemTransaction.objects.create(user=request.user,
-                                   cost=request.POST.get(f"item_cost{i}"),
+                                   cost=curr_cost,
                                    quantity=request.POST.get(f"item_quantity{i}"),
                                    category=curr_category,
                                    merchant=receipt_merchant,
                                    date=timezone.localdate(),
                                    receipt=receipt_obj,
+                                   account=receipt_account,
                                    name=request.POST.get(f"item_name{i}"))
+        
+
+        receipt_account.budget += curr_cost
 
         cat = new_item.category
         budgets = Budget.objects.filter(user=request.user, category__title=cat.title)

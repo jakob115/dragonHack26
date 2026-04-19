@@ -19,6 +19,15 @@
                         <div class="qa-label">Merchant</div>
                         <input class="qa-input" type="text" name="merchant" placeholder="e.g. Mercator, Bolt, Telekom">
                     </div>
+                    <div class="qa-field">
+                        <div class="qa-label">Account</div>
+                        <select class="qa-input qa-select" name="account">
+                            <option value="">No account selected</option>
+                            {% for account in accounts %}
+                                <option value="{{ account.id }}">{{ account.title }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
                 </div>
 
                 <div class="qa-hint">Add the shared expense details above, then fill in the line item fields below.</div>
