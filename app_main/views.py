@@ -158,14 +158,40 @@ def home(request):
 @login_required
 def delete_transaction_receipt(request, receipt_id):
     object_id = ObjectId(receipt_id)
-    receipt = ReceiptTransaction.objects.get(id=object_id)
+    receipt = get_object_or_404(ReceiptTransaction, id=object_id, user=request.user)
+    receipt_items = receipt.itemtransaction_set.select_related("account", "category").all()
+
+    for item in receipt_items:
+        if item.account is not None:
+            item.account.balance += item.cost
+            item.account.save(update_fields=["balance"])
+
+        budgets = Budget.objects.filter(user=item.user, category__title=item.category.title)
+        for budget in budgets:
+            budget.balance -= item.cost
+            budget.save(update_fields=["balance"])
+
     receipt.delete()
     return redirect("transactions")
 
 @login_required
 def delete_transaction_item(request, item_id):
     object_id = ObjectId(item_id)
-    item = ItemTransaction.objects.get(id=object_id)
+    item = get_object_or_404(
+        ItemTransaction.objects.select_related("account", "category"),
+        id=object_id,
+        user=request.user,
+    )
+
+    if item.account is not None:
+        item.account.balance += item.cost
+        item.account.save(update_fields=["balance"])
+
+    budgets = Budget.objects.filter(user=item.user, category__title=item.category.title)
+    for budget in budgets:
+        budget.balance -= item.cost
+        budget.save(update_fields=["balance"])
+
     item.delete()
     return redirect("transactions")
 
@@ -174,9 +200,16 @@ def edit_transaction_item(request, item_id):
     object_id = ObjectId(item_id)
     item = ItemTransaction.objects.get(id=object_id)
     request.session["editing_item_id"] = item_id
+
+    if item.account is not None:
+        item.account.balance += item.cost
+        item.account.save(update_fields=["balance"])
+
     return render(request, 'edit_item.html', {"active_page": "edit_item",
                                               "item": item,
                                               })
+
+
 
 @login_required
 def edit_item(request):
@@ -206,6 +239,10 @@ def edit_item(request):
         item.category = Category.objects.get(title=new_category)
     if new_date:
         item.date = new_date
+
+    if item.account is not None:
+        item.account.balance -= item.cost
+        item.account.save(update_fields=["balance"])
 
     item.save()
     del request.session["editing_item_id"]
