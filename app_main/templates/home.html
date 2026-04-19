@@ -86,7 +86,7 @@
     </div>
     <div class="mc">
         <div class="mc-label">Needs review</div>
-        <div class="mc-val">3</div>
+        <div class="mc-val">{{ flagged_count }}</div>
         <span class="mc-tag red-dim text-red">AI flagged</span>
         <div class="mc-sub">Unknown merchants</div>
     </div>
@@ -164,7 +164,6 @@
         <div class="panel-body panel-body-tight">
             {% for expense in recurring_expenses %}
             <div class="rc">
-                <div class="rc-ico">🏠</div>
                 <div class="rc-inf">
                     <div class="rc-name">{{ expense.title }}</div>
                     <div class="rc-cycle">{{ expense.type }} · {{ expense.dayofweek }}</div>
@@ -240,9 +239,9 @@
                     <label class="qa-label" for="receipt-scan-account">Account</label>
                     <select class="qa-input qa-select" id="receipt-scan-account" name="account" required>
                         <option value="" disabled selected>Select account…</option>
-                        <option value="n26-checking">N26 Checking</option>
-                        <option value="revolut">Revolut</option>
-                        <option value="cash-wallet">Cash wallet</option>
+                        {% for acc in accounts %}
+                        <option value="{{ acc.id }}">{{ acc.title }}</option>
+                        {% endfor %}
                     </select>
                 </div>
                 <input

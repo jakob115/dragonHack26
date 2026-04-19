@@ -2,6 +2,12 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 from django.db import models
 
+class Account(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    title = models.CharField(max_length=100)
+    description = models.CharField(max_length=255)
+    balance = models.DecimalField(max_digits=20, decimal_places=2)
+
 class Category(models.Model):
     title = models.CharField(max_length=100)
     parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True)
@@ -41,13 +47,7 @@ class ItemTransaction(models.Model):
     merchant = models.CharField(max_length=100, blank=True, null=True)
     name = models.CharField(max_length=100, blank=True, null=True)
     subcategory = models.ForeignKey(Category, on_delete=models.CASCADE, null=True, related_name="subcategory")
-    
-
-class Account(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    title = models.CharField(max_length=100)
-    description = models.CharField(max_length=255)
-    balance = models.DecimalField(max_digits=20, decimal_places=2)
+    account = models.ForeignKey(Account, on_delete=models.CASCADE, null=True)
 
 class ScheduleExpense(models.Model):
 

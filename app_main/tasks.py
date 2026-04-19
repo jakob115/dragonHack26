@@ -5,13 +5,14 @@ from datetime import datetime
 from google.genai import types
 from google import genai
 import json
+from bson import ObjectId
 
 from django.contrib.auth import login
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
 from django.core.serializers.json import DjangoJSONEncoder
-from .models import ReceiptTransaction, Category, ItemTransaction, Budget, ScheduleExpense
+from .models import ReceiptTransaction, Category, ItemTransaction, Budget, ScheduleExpense, Account
 
 from DH26 import settings
 
@@ -20,7 +21,7 @@ client = genai.Client(api_key=settings.GEMINI_API_KEY)
 
 
 @celery_app.task(name="process_receipt_image")
-def receipt_image_background_process(receipt_id,  is_Image, user_id):
+def receipt_image_background_process(receipt_id,  is_Image, user_id, account_id=''):
     new_receipt = ReceiptTransaction.objects.get(id=receipt_id)
     curr_user = User.objects.get(id=user_id)
     
@@ -41,7 +42,7 @@ def receipt_image_background_process(receipt_id,  is_Image, user_id):
        + subcategories_string
        + "if it fits to any of them, otherwise create a new one."
        + "A subcategory has to be very specific like type of bread or drink."
-       + " It should be an array of jsons for each item with string keys, items translated to english, named lower case."
+       + " It should be an array of jsons [{'date':..., 'merchant':...,},...]for each item with string keys, items translated to english, named lower case."
        + "Convert money to euro, divide each item. The date is at the bottom of the receipt."
        + "Under date shoud be stored in a %Y-%m-%d format for strptime, the fields should be empty if no information present"
     )
@@ -86,6 +87,15 @@ def receipt_image_background_process(receipt_id,  is_Image, user_id):
         else:
             curr_subcategory = Category.objects.create(title=item['subcategory'], parent=curr_category)
 
+        account = None
+        if account_id:
+            account_id = object_id = ObjectId(account_id)
+            account = Account.objects.get(id=account_id)
+            new_balance = account.balance - Decimal(item['cost'])
+            account.balance = new_balance
+            account.save()
+            
+
         new_item = ItemTransaction.objects.create(user=curr_user,
                                                   receipt=new_receipt,
                                                   cost=item['cost'],
@@ -94,7 +104,8 @@ def receipt_image_background_process(receipt_id,  is_Image, user_id):
                                                   category=curr_category,
                                                   merchant=item['merchant'],
                                                   name=item['name'],
-                                                  subcategory=curr_subcategory
+                                                  subcategory=curr_subcategory,
+                                                  account=account
                                                 )
         cat = new_item.category
         budgets = Budget.objects.filter(user=curr_user, category__title=cat.title)

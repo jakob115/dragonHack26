@@ -41,7 +41,7 @@ def home(request):
     context['reccuring_expenses'] = ScheduleExpense.objects.filter(user=request.user)
     context['latest_transactions'] = ItemTransaction.objects.filter(user=request.user).order_by("-id")[:3]
     context['next_recurring'] = ScheduleExpense.objects.filter(user=request.user).order_by("-id")[:1]
-
+    context['flagged_count'] = ItemTransaction.objects.filter(account__isnull=True).count()
     budget_agg = Budget.objects.filter(user=request.user).aggregate(
         total_balance=Sum("balance"),
         total_limit=Sum("limit"),
@@ -554,9 +554,14 @@ def delete_account(request, account_id):
 
 @login_required
 def process_receipt_image(request):
+   
     uploaded_file = None
     is_Image = False
-
+    
+    account_id = ''
+    if 'account' in request.POST:
+       account_id = request.POST['account']
+    
     if 'image' in request.FILES:
         uploaded_file = request.FILES['image']
         is_Image = True
@@ -573,13 +578,15 @@ def process_receipt_image(request):
     new_receipt_id = str(new_receipt.pk)
 
     user_id = str(request.user.pk)
-    
-    receipt_image_background_process.delay(new_receipt_id, is_Image, user_id)
+    if account_id:
+        receipt_image_background_process.delay(new_receipt_id, is_Image, user_id, account_id)
+    else:
+        receipt_image_background_process.delay(new_receipt_id, is_Image, user_id)
     # ~ image_bytes = None
     # ~ with open(new_receipt.file.path, "rb") as f:
         # ~ image_bytes = f.read()
     
-    # ~ existing_categories = Category.objects.filter(parent__isnull=True).values('title')
+    # ~ existing_categories = Category.objects.all().values('title')
     # ~ categories_string = json.dumps(list(existing_categories), indent=2, cls=DjangoJSONEncoder)
     
     # ~ existing_subcategories = Category.objects.filter(parent__isnull=False).values('title')
@@ -592,12 +599,11 @@ def process_receipt_image(request):
        # ~ + subcategories_string
        # ~ + "if it fits to any of them, otherwise create a new one."
        # ~ + "A subcategory has to be very specific like type of bread or drink."
-       # ~ + " in json format in english in this order, named lower case."
-       # ~ + "Add a field 'existing category'"
-       # ~ + "and put True if you picked from list and False if you made a new one."
-       # ~ + "Convert money to euro, divide each item."
-       # ~ + "The date shoud be in a %Y-%m-%d format, the fields should be empty if no information present"
+       # ~ + " It should be an array of jsons for each item with string keys, items translated to english, named lower case."
+       # ~ + "Convert money to euro, divide each item. The date is at the bottom of the receipt."
+       # ~ + "Under date shoud be stored in a %Y-%m-%d format for strptime, the fields should be empty if no information present"
     # ~ )
+
     # ~ prompt_contents = None
     # ~ if is_Image:
         # ~ prompt_contents = [
@@ -617,10 +623,10 @@ def process_receipt_image(request):
         # ~ ]
     
     # ~ response = client.models.generate_content(
-        # ~ model="gemini-3.1-flash-lite-preview",
+        # ~ model="gemini-3.1-pro-preview",
         # ~ contents=prompt_contents
     # ~ )
-
+    
     # ~ clean_content = response.text.replace("```json", "").replace("```", "").strip()
     # ~ data = json.loads(clean_content)
     # ~ for item in data:
@@ -648,6 +654,15 @@ def process_receipt_image(request):
                                                   # ~ name=item['name'],
                                                   # ~ subcategory=curr_subcategory
                                                 # ~ )
+        # ~ cat = new_item.category
+        # ~ budgets = Budget.objects.filter(user=curr_user, category__title=cat.title)
+        # ~ if budgets:
+            # ~ for budget in budgets:
+                # ~ budget.balance += Decimal(new_item.cost)
+                # ~ budget.save()
+        # ~ if cat.parent:
+            # ~ cat.parent.budget += Decimal(new_item.cost)
+            # ~ cat.parent.save()
     return render(request, 'home.html', {"active_page": "dashboard"})
 
 

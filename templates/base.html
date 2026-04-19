@@ -352,6 +352,11 @@ document.addEventListener("change", async function (e) {
 
     const formData = new FormData();
     formData.append("video", file);
+    
+    const accountSelect = document.getElementById("receipt-scan-account");
+    if (accountSelect && accountSelect.value) {
+        formData.append("account", accountSelect.value);
+    }
 
     const csrftoken = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
 
