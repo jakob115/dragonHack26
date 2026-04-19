@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% block title %}Ledger | Edit Recurring Item{% endblock %}
+{% block page_title %}Add expense{% endblock %}
+
+{% block content %}
+<div class="stack">
+    <div class="panel">
+        <div class="panel-head">
+            <div class="panel-title">Edit item</div>
+            <div class="panel-link">manual entry</div>
+        </div>
+        <div class="panel-body">
+            <form method="post" action="{% url 'edit-recurring' %}">
+                {% csrf_token %}
+
+                <div class="qa-fields"></div>
+
+                <div id="expense-items">
+                    <div class="qa-fields">
+                        <div class="qa-field">
+                            <div class="qa-label">Title</div>
+                            <input class="qa-input" type="text" name="title" value="{{ rec.title }}" placeholder="e.g. Pocket money, ...">
+                        </div>
+                        <div class="qa-field">
+                            <div class="qa-label">Cost</div>
+                            <input class="qa-input" type="text" name="cost" value="{{ rec.cost }}" placeholder="€ 0.00">
+                        </div>
+                        <div class="qa-field">
+                            <div class="qa-label">Type</div>
+                            <input class="qa-input" type="text" name="type" value="{{ rec.type }}" placeholder="DAILY, MONTHLY, YEARLY">
+                        </div>
+                        <div class="qa-field">
+                            <div class="qa-label">Account</div>
+                            <select class="qa-input qa-select" name="account">
+                                <option value="">No account selected</option>
+                                {% for account in accounts %}
+                                    <option value="{{ account.id }}" {% if rec.account and rec.account.id == account.id %}selected{% endif %}>{{ account.title }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-spacer"></div>
+
+                <div class="qa-btns">
+                    <button class="btn btn-gold btn-flex" type="submit">Save changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

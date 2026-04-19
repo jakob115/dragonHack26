@@ -2,7 +2,7 @@ from decimal import Decimal, InvalidOperation
 
 from django.db.models.aggregates import Sum
 from django.http import JsonResponse, HttpResponse, StreamingHttpResponse
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from datetime import datetime
 from bson import ObjectId
 from google.genai import types
@@ -33,7 +33,7 @@ def home(request):
     context['net_worth_dec'] = dec_part
     context['accounts_count'] = Account.objects.filter(user=request.user).count()
     context['balance'] = balance
-    context['reccuring_expenses'] = ScheduleExpense.objects.filter(user=request.user)
+    context['recurring_expenses'] = ScheduleExpense.objects.filter(user=request.user)
     return render(request, 'home.html', context)
 
 
@@ -95,10 +95,6 @@ def edit_item(request):
 
 
 
-
-
-
-
 @login_required
 def transactions(request):
     context = {}
@@ -128,30 +124,110 @@ def transactions(request):
 @login_required
 def recurring(request):
     context = {}
-    context['active_page'] = "reccuring"
+    context['active_page'] = "recurring"
     types = ScheduleExpense.TYPE_OF_EXPENSE
     context['expense_types'] = types
     curr_user = request.user
     context['accounts'] = Account.objects.filter(user=curr_user)
-    reccuring_expenses = ScheduleExpense.objects.filter(user=curr_user)
+    recurring_expenses = ScheduleExpense.objects.filter(user=curr_user)
 
-    context['reccuring_expenses'] = reccuring_expenses
+    context['recurring_expenses'] = recurring_expenses
     return render(request, 'recurring.html', context)
 
 
 @login_required
-def create_reccuring(request):
-    context = {}
-    reccuring_title = request.POST['title']
-    reccuring_cost = request.POST['cost']
-    reccuring_type = request.POST['type']
-    curr_user = request.user
-    new_scheduled_expense = ScheduleExpense.objects.create(title=reccuring_title,
-                                                           user=curr_user,
-                                                           cost=reccuring_cost,
-                                                           type=reccuring_type,
-                                                          )
-    return HttpResponse(200)
+def create_recurring_item(request):
+    return render(request, 'create_recurring.html', {"active_page": "create_recurring"})
+
+
+@login_required
+def create_recurring(request):
+    if request.method != "POST":
+        return redirect("recurring")
+
+    recurring_user = request.user
+    recurring_title = (request.POST.get("title") or "").strip()
+    recurring_cost = request.POST.get("cost")
+    recurring_type = request.POST.get("type")
+    recurring_account_id = request.POST.get("account")
+    recurring_account = None
+    valid_types = {choice[0] for choice in ScheduleExpense.TYPE_OF_EXPENSE}
+
+    if not recurring_title or not recurring_cost or recurring_type not in valid_types:
+        return redirect("recurring")
+
+    if recurring_account_id:
+        recurring_account = get_object_or_404(Account, pk=recurring_account_id, user=recurring_user)
+
+    ScheduleExpense.objects.create(
+        user=recurring_user,
+        title=recurring_title,
+        cost=recurring_cost,
+        type=recurring_type,
+        account=recurring_account,
+    )
+    return redirect("recurring")
+    
+
+
+@login_required
+def delete_recurring_item(request, rec_id):
+    if request.method not in {"POST", "GET"}:
+        return redirect("recurring")
+
+    rec = get_object_or_404(ScheduleExpense, pk=rec_id, user=request.user)
+    rec.delete()
+    return redirect("recurring")
+
+@login_required
+def edit_recurring_item(request, rec_id):
+    rec = get_object_or_404(ScheduleExpense, pk=rec_id, user=request.user)
+    request.session["editing_recurring_id"] = rec_id
+    return render(
+        request,
+        'edit_recurring.html',
+        {
+            "active_page": "recurring",
+            "rec": rec,
+            "accounts": Account.objects.filter(user=request.user),
+            "expense_types": ScheduleExpense.TYPE_OF_EXPENSE,
+        },
+    )
+
+@login_required
+def edit_recurring(request):
+    rec_id = request.session.get("editing_recurring_id")
+    if not rec_id:
+        return redirect("recurring")
+    if request.method != "POST":
+        return redirect("edit_recurring_item", rec_id=rec_id)
+
+    rec = get_object_or_404(ScheduleExpense, pk=rec_id, user=request.user)
+
+    new_title = request.POST.get("title")
+    new_cost = request.POST.get("cost")
+    new_type = request.POST.get("type")
+    new_account_id = request.POST.get("account")
+    new_account = None
+
+    if new_account_id:
+        new_account = get_object_or_404(Account, pk=new_account_id, user=request.user)
+
+    if new_title is not None:
+        rec.title = new_title
+    if new_cost is not None:
+        rec.cost = new_cost
+    if new_type is not None:
+        rec.type = new_type
+    if new_account_id is not None:
+        rec.account = new_account
+
+    rec.save()
+    del request.session["editing_recurring_id"]
+
+    return redirect("recurring")
+
+
 
 @login_required
 def analytics(request):

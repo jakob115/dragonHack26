@@ -7,10 +7,12 @@
 <div class="panel">
     <div class="panel-head">
         <div class="panel-title">Recurring expenses</div>
-        <button type="button" class="btn btn-gold btn-sm" id="btn-add-recurring">+ Add recurring</button>
+        <a href="{% url 'create-recurring-item' %}">
+            <button type="button" class="btn btn-gold btn-sm" id="btn-add-recurring">+ Add recurring</button>
+        </a>
     </div>
     <div class="panel-body panel-body-tight">
-        {% for expense in reccuring_expenses %}
+        {% for expense in recurring_expenses %}
         <div class="rc" data-recurring-id="rent" data-title="Rent" data-cost="680" data-type="monthly" data-day="monday">
             <div class="rc-ico">🏠</div>
             <div class="rc-inf">
@@ -21,8 +23,12 @@
                 <div class="rc-amt">€{{ expense.cost }}</div>
                 <div class="rc-next text-muted">paid Apr 1</div>
                 <div class="rc-actions">
-                    <button type="button" class="btn btn-sm btn-rec-edit">Edit</button>
-                    <button type="button" class="btn btn-sm btn-danger btn-rec-delete">Delete</button>
+                    <a href="{% url 'edit-recurring-item' expense.id %}">
+                        <button type="button" class="btn btn-sm btn-rec-edit">Edit</button>
+                    </a>
+                    <a href="{% url 'delete-recurring-item' expense.id %}">
+                        <button type="button" class="btn btn-sm btn-danger btn-rec-delete">Delete</button>
+                    </a>
                 </div>
             </div>
         </div>
@@ -62,119 +68,11 @@
                 <label class="qa-label" for="recurring-account">Account</label>
                 <select class="qa-input qa-select" id="recurring-account" name="account" required>
                     {% for account in accounts %}
-                    <option value="{{ account.id }}">{{ account.reccuring }}</option>
+                    <option value="{{ account.id }}">{{ account.title }}</option>
                     {% endfor %}
                 </select>
-            </div>
-
-            <div class="modal-actions">
-                <button type="button" class="btn btn-sm" id="recurring-modal-cancel">Cancel</button>
-                <button type="submit" class="btn btn-gold btn-sm" id="recurring-modal-submit">Save</button>
             </div>
         </form>
     </div>
 </div>
-{% endblock %}
-
-{% block extrascripts %}
-<script>
-(() => {
-    const modal = document.getElementById("recurring-modal");
-    const btnOpen = document.getElementById("btn-add-recurring");
-    const btnClose = document.getElementById("recurring-modal-close");
-    const btnCancel = document.getElementById("recurring-modal-cancel");
-    const form = document.getElementById("recurring-modal-form");
-
-    const setMode = ({ mode, row }) => {
-        const title = document.getElementById("recurring-modal-title");
-        const id = document.getElementById("recurring-id");
-        const t = document.getElementById("recurring-title");
-        const c = document.getElementById("recurring-cost");
-        const ty = document.getElementById("recurring-type");
-        
-        if (mode === "edit" && row) {
-            title.textContent = "Edit recurring transaction";
-            id.value = row.dataset.recurringId || "";
-            t.value = row.dataset.title || "";
-            c.value = row.dataset.cost || "";
-            ty.value = row.dataset.type || "MONTHLY";
-        } else {
-            title.textContent = "Add recurring transaction";
-            id.value = "";
-            form.reset();
-            ty.value = "MONTHLY";
-        }
-        t.focus();
-    };
-
-    const open = () => {
-        modal.hidden = false;
-        modal.removeAttribute("hidden");
-        modal.setAttribute("aria-hidden", "false");
-        document.body.classList.add("modal-open");
-    };
-
-    const close = () => {
-        modal.hidden = true;
-        modal.setAttribute("aria-hidden", "true");
-        document.body.classList.remove("modal-open");
-    };
-
-    btnOpen?.addEventListener("click", () => {
-        setMode({ mode: "add" });
-        open();
-    });
-    btnClose?.addEventListener("click", close);
-    btnCancel?.addEventListener("click", close);
-    modal?.addEventListener("click", (e) => { if (e.target === modal) close(); });
-    document.addEventListener("keydown", (e) => { if (e.key === "Escape" && modal && !modal.hidden) close(); });
-
-    document.querySelectorAll(".btn-rec-edit").forEach((btn) => {
-        btn.addEventListener("click", () => {
-            const row = btn.closest(".rc");
-            setMode({ mode: "edit", row });
-            open();
-        });
-    });
-
-    document.querySelectorAll(".btn-rec-delete").forEach((btn) => {
-        btn.addEventListener("click", () => {
-            const row = btn.closest(".rc");
-            const title = row?.querySelector(".rc-name")?.textContent?.trim() || "this recurring expense";
-            if (!row) return;
-            if (!confirm(`Delete ${title}?`)) return;
-            row.remove();
-        });
-    });
-
-   
-})();
-
-document.getElementById("recurring-modal-form").addEventListener("submit", async function (e) {
-    e.preventDefault();
-
-    const formData = new FormData(this);
-
-    const csrftoken = document.querySelector('input[name="csrfmiddlewaretoken"]')?.value;
-
-    try {
-        const response = await fetch("{% url 'create-recurring' %}", {
-            method: "POST",
-            body: formData,
-            headers: {
-                "X-CSRFToken": csrftoken
-            }
-        });
-
-        if (response.ok) {
-            window.location.reload();
-        } else {
-            console.error("Server error");
-        }
-
-    } catch (error) {
-        console.error("Request failed:", error);
-    }
-});
-</script>
 {% endblock %}
