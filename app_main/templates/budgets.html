@@ -5,11 +5,10 @@
 
 {% block content %}
 <div class="panel">
-    <div class="panel-head">
+    <div class="panel-head" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:nowrap;">
         <div class="panel-title">Monthly budgets</div>
         <div class="panel-head-actions">
-            <div class="panel-link">April 2025</div>
-            <button type="button" class="btn btn-gold btn-sm" id="btn-open-budget-modal">+ Add budget</button>
+            <button type="button" class="btn btn-gold btn-sm" id="btn-open-budget-modal" style="flex:none;">+ Add budget</button>
         </div>
     </div>
     <div class="panel-body">
@@ -19,18 +18,16 @@
                 <div class="cat-name"><div class="cat-pip gold-bg"></div>{{ item.title }}</div>
                 <div class="cat-amt">€{{ item.balance }} / €{{ item.limit }}</div>
             </div>
+            <div class="cat-pct">{{ item.category.title }}</div>
             <div class="cat-track"><div class="cat-fill gold-bg" style="width:{{ item.percentage }}%"></div></div>
             <div class="cat-pct">€{{ item.remaining }} remaining</div>
+            <a href="{% url 'delete-budget-item' item.id %}">
+                <button type="button" class="btn btn-gold btn-sm" style="margin-top:8px;">x</button>
+            </a>
         </div>
+        {% empty %}
+        <div class="cat-pct">No budgets yet. Add one to see it here.</div>
         {% endfor %}
-        <div class="cat-item">
-            <div class="cat-top">
-                <div class="cat-name"><div class="cat-pip blue-bg"></div>Transport</div>
-                <div class="cat-amt">€274 / €350</div>
-            </div>
-            <div class="cat-track"><div class="cat-fill blue-bg" style="width:78%"></div></div>
-            <div class="cat-pct">€76 remaining</div>
-        </div>
     </div>
 </div>
 

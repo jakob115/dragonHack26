@@ -31,10 +31,10 @@ urlpatterns = [
     path('delete-recurring-item/<str:rec_id>', views.delete_recurring_item, name="delete-recurring-item"),
     path('edit-recurring-item/<str:rec_id>', views.edit_recurring_item, name="edit-recurring-item"),
     path('edit-recurring/', views.edit_recurring, name="edit-recurring"),
+    path('delete-budget-item/<str:budget_id>', views.delete_budget_item, name="delete-budget-item"),
 
     path('stream/', views.stream_chat, name="stream"),
 
     path('export-to-excel/', views.export_to_excel, name="export-to-excel"),
     path('export-to-json/', views.export_to_json, name="export-to-json"),
 ]
-

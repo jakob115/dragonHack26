@@ -256,6 +256,16 @@ def edit_recurring(request):
     return redirect("recurring")
 
 
+@login_required
+def delete_budget_item(request, budget_id):
+    if request.method not in {"POST", "GET"}:
+        return redirect("budgets")
+
+    budget = get_object_or_404(Budget, pk=budget_id, user=request.user)
+    budget.delete()
+
+    return redirect("budgets")
+
 
 @login_required
 def analytics(request):
@@ -266,7 +276,7 @@ def analytics(request):
 def budgets(request):
     context = {"active_page": "budgets"}
     categories = Category.objects.all().order_by("title")
-    budgets = Budget.objects.filter(user=request.user)
+    budgets = Budget.objects.filter(user=request.user).select_related("category").order_by("title")
     context['categories'] = categories
     context['budgets'] = budgets
     return render(
