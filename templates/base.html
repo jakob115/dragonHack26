@@ -10,7 +10,6 @@
     {% block extrastyle %}{% endblock %}
 </head>
 <body>
-<h2 class="sr-only">Premium dark expense tracker dashboard with Bloomberg terminal aesthetic, showing net worth, transactions, and AI insights</h2>
 <div class="app">
     <aside class="sidebar">
         <div class="logo-area">
@@ -59,7 +58,6 @@
                 <div class="acc-type">{{acc.description}}</div>
                 <div class="acc-row">
                     <div class="acc-bal">€ {{acc.balance|floatformat:2}}</div>
-                    <div class="acc-delta pos">+€340</div>
                 </div>
             </div>
             {% endfor %}
