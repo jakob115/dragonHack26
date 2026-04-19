@@ -7,98 +7,63 @@
 <div class="panel">
     <div class="panel-head">
         <div class="panel-title">All transactions</div>
-        <div class="panel-link">April 2025</div>
     </div>
     <div class="panel-body panel-body-tight">
-    {% for transaction in transactions %}
-    <div class="tx">
-        <div class="tx-inf">
-            <div class="tx-merch">{{ transaction.name }}</div>
-            <div class="tx-meta"><div class="tx-cat-tag">{{ transaction.merchant }}</div><div class="tx-date">Apr 17</div></div>
-        </div>
-        <div class="tx-actions">
-            <div class="tx-amt deb">−€{{ transaction.cost|floatformat:2 }}</div>
-            <div class="inline-actions">
-                <button type="button" class="btn btn-sm">Edit</button>
-                <button type="button" class="btn btn-sm btn-danger">Delete</button>
+        {% for transaction in transaction_data %}
+        {% if transaction.item_list %}
+        <div class="panel" style="margin-bottom: 10px">
+            <div class="panel-head">
+                <div class="panel-link">grouped view</div>
             </div>
-        </div>
-    </div>
-    {% endfor %}
-    </div>
-</div>
-
-<div class="panel">
-    <div class="panel-head">
-        <div class="panel-title">Example receipt</div>
-        <div class="panel-link">grouped view</div>
-    </div>
-    <div class="panel-body">
-        <div class="receipt-sample">
-            <div class="receipt-sample-head">
-                <div class="receipt-sample-title">Mercator d.d. · 17 Apr 2025</div>
-                <div class="inline-actions">
-                   
-                    <button type="button" class="btn btn-sm btn-danger">Delete</button>
+            <div class="panel-body">
+                <div class="receipt-sample">
+                    <div class="receipt-sample-head">
+                        <div class="receipt-sample-title">{{ transaction.transaction_merchant }} · {{ transaction.transaction_date }}</div>
+                        <div class="inline-actions">
+                          <a href="{% url 'delete-transaction-receipt' transaction.receipt_id %}">
+                            <button type="button" class="btn btn-sm btn-danger">Delete</button>
+                          </a>
+                        </div>
+                    </div>
+                    <ul class="receipt-sample-items">
+                        {% for item in transaction.item_list  %}
+                        <li class="receipt-sample-item">
+                            <span class="receipt-sample-item-name">{{ item.name }}</span>
+                            <span>€{{ item.cost|floatformat:2 }}</span>
+                            <div class="inline-actions">
+                                <a href="{% url 'edit-transaction-item' item.id %}">
+                                    <button type="button" class="btn btn-sm">Edit</button>
+                                </a>
+                                <a href="{% url 'delete-transaction-item' item.id %}">
+                                    <button type="button" class="btn btn-sm btn-danger">Delete</button>
+                                </a>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
                 </div>
             </div>
-            <ul class="receipt-sample-items">
-                <li class="receipt-sample-item">
-                    <span class="receipt-sample-item-name">Fresh milk 1L</span>
-                    <span>€1.29</span>
-                    <div class="inline-actions">
-                        <button type="button" class="btn btn-sm">Edit</button>
-                        <button type="button" class="btn btn-sm btn-danger">Delete</button>
-                    </div>
-                </li>
-                <li class="receipt-sample-item">
-                    <span class="receipt-sample-item-name">Sourdough loaf</span>
-                    <span>€2.40</span>
-                    <div class="inline-actions">
-                        <button type="button" class="btn btn-sm">Edit</button>
-                        <button type="button" class="btn btn-sm btn-danger">Delete</button>
-                    </div>
-                </li>
-                <li class="receipt-sample-item">
-                    <span class="receipt-sample-item-name">Coffee beans 250g</span>
-                    <span>€8.90</span>
-                    <div class="inline-actions">
-                        <button type="button" class="btn btn-sm">Edit</button>
-                        <button type="button" class="btn btn-sm btn-danger">Delete</button>
-                    </div>
-                </li>
-                <li class="receipt-sample-item receipt-sample-total"><span class="receipt-sample-item-name">Total</span><span>€12.59</span></li>
-            </ul>
         </div>
+        {% else %}
+        <div class="tx">
+            <div class="tx-inf">
+                <div class="tx-merch">{{ transaction.item.name }}</div>
+                <div class="tx-meta"><div class="tx-cat-tag">{{ transaction.item.merchant }}</div><div class="tx-date">Apr 17</div></div>
+            </div>
+            <div class="tx-actions">
+                <div class="tx-amt deb">−€{{ transaction.item.cost|floatformat:2 }}</div>
+                <div class="inline-actions">
+                                <a href="{% url 'edit-transaction-item' transaction.item.id %}">
+                                    <button type="button" class="btn btn-sm">Edit</button>
+                                </a>
+                                <a href="{% url 'delete-transaction-item' transaction.item.id %}">
+                                    <button type="button" class="btn btn-sm btn-danger">Delete</button>
+                                </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        {% endfor %}
     </div>
 </div>
-
-{% comment %}
-    <div class="panel-body panel-body-tight">
-        <div class="tx">
-            <div class="tx-ico">☕</div>
-            <div class="tx-inf">
-                <div class="tx-merch">Stow Coffee Roasters</div>
-                <div class="tx-meta"><div class="tx-cat-tag">Specialty Coffee Shops</div><div class="tx-date">Apr 17</div></div>
-            </div>
-            <div class="tx-amt deb">−€5.40</div>
-        </div>
-        <div class="tx">
-            <div class="tx-ico">🚌</div>
-            <div class="tx-inf">
-                <div class="tx-merch">LPP Monthly pass</div>
-                <div class="tx-meta"><div class="tx-cat-tag">Public transport</div><div class="tx-date">Apr 15</div></div>
-            </div>
-            <div class="tx-amt deb">−€28.00</div>
-        </div>
-        <div class="tx">
-            <div class="tx-ico">↑</div>
-            <div class="tx-inf">
-                <div class="tx-merch">April salary</div>
-                <div class="tx-meta"><div class="tx-cat-tag green-dim text-green">Income</div><div class="tx-date">Apr 14</div></div>
-            </div>
-            <div class="tx-amt cre">+€3,200</div>
-        </div>
-    </div>
-{% endcomment %}
 {% endblock %}

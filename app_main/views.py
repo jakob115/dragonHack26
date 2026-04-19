@@ -2,6 +2,7 @@ from django.db.models.aggregates import Sum
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render, redirect
 from datetime import datetime
+from bson import ObjectId
 from google.genai import types
 from google import genai
 
@@ -35,12 +36,90 @@ def home(request):
 
 
 @login_required
+def delete_transaction_receipt(request, receipt_id):
+    object_id = ObjectId(receipt_id)
+    receipt = ReceiptTransaction.objects.get(id=object_id)
+    receipt.delete()
+    return redirect("transactions")
+    
+@login_required
+def delete_transaction_item(request, item_id):
+    object_id = ObjectId(item_id)
+    item = ItemTransaction.objects.get(id=object_id)
+    item.delete()
+    return redirect("transactions")
+    
+@login_required
+def edit_transaction_item(request, item_id):
+    object_id = ObjectId(item_id)
+    item = ItemTransaction.objects.get(id=object_id)
+    request.session["editing_item_id"] = item_id
+    return render(request, 'edit_item.html', {"active_page": "edit_item",
+                                              "item": item,
+                                              })
+
+@login_required
+def edit_item(request):
+
+    item_id = request.session.get("editing_item_id")
+    if not item_id:
+        return redirect("transactions")
+    object_id = ObjectId(item_id)
+    item = ItemTransaction.objects.get(id=object_id)
+
+    new_name = request.POST.get("name")
+    new_merchant = request.POST.get("merchant")
+    new_cost = request.POST.get("cost")
+    new_quantity = request.POST.get("quantity")
+    new_category = request.POST.get("category")
+    new_date = request.POST.get("date")
+
+    if new_name is not None:
+        item.name = new_name
+    if new_merchant is not None:
+        item.merchant = new_merchant
+    if new_cost is not None:
+        item.cost = new_cost
+    if new_quantity is not None:
+        item.quantity = new_quantity
+    if new_category:
+        item.category = Category.objects.get(title=new_category)
+    if new_date:
+        item.date = new_date
+    
+    item.save()
+    del request.session["editing_item_id"]
+    return redirect("transactions")
+
+
+
+
+
+
+
+@login_required
 def transactions(request):
     context = {}
     context['active_page'] = "transactions"
     curr_user = request.user
-    transactions = ItemTransaction.objects.filter(user=curr_user)
-    context['transactions'] = transactions
+    
+    transaction_data = []
+    receipts = ReceiptTransaction.objects.filter(user=curr_user)
+    for receipt in receipts:  
+        linked_items = receipt.itemtransaction_set.all()
+        if linked_items:
+            receipt_date = linked_items[0].date
+            receipt_merchat = linked_items[0].merchant
+            
+            transaction_data.append({'transaction_date':receipt_date, 'transaction_merchant': receipt_merchat, 'item_list': linked_items, 'receipt_id': str(receipt.id)})
+            
+    items = ItemTransaction.objects.filter(user=curr_user, receipt=None)
+    for item in items:
+        transaction_data.append({'transaction_date':item.date, 'item': item })
+        
+    transaction_data.sort(key=lambda x: x["transaction_date"], reverse=True)
+
+    context['transaction_data'] = transaction_data
     return render(request, 'transactions.html', context)
 
 
