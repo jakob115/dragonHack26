@@ -18,7 +18,11 @@
             <div class="panel-body">
                 <div class="receipt-sample">
                     <div class="receipt-sample-head">
-                        <div class="receipt-sample-title">{{ transaction.transaction_merchant }} · {{ transaction.transaction_date }}</div>
+                        <div class="receipt-sample-title
+                        {% if not item.account %}
+                        red-dim text-red
+                        {% endif %}
+                        ">{{ transaction.transaction_merchant }} · {{ transaction.transaction_date }}</div>
                         <div class="inline-actions">
                           <a href="{% url 'delete-transaction-receipt' transaction.receipt_id %}">
                             <button type="button" class="btn btn-sm btn-danger">Delete</button>
@@ -48,7 +52,11 @@
         <div class="tx">
             <div class="tx-inf">
                 <div class="tx-merch">{{ transaction.item.name }}</div>
-                <div class="tx-meta"><div class="tx-cat-tag">{{ transaction.item.merchant }}</div><div class="tx-date">{{ transaction.item.date }}</div></div>
+                <div class="tx-meta"><div class="tx-cat-tag
+                {% if not transaction.item.account %}
+                   red-dim text-red
+                {% endif %}
+                ">{{ transaction.item.merchant }}</div><div class="tx-date">{{ transaction.item.date }}</div></div>
             </div>
             <div class="tx-actions">
                 <div class="tx-amt deb">−€{{ transaction.item.cost|floatformat:2 }}</div>

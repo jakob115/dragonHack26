@@ -123,27 +123,35 @@ def update_scheduled_expenses():
     for expense in scheduled_expenses:
         account = scheduled_expenses.account
         new_balance = account.balance - expense.cost
-        account.update(balance=new_balance)
+        account.balance = new_balance
+        account.save()
 
     if datetime.now.weekday() == 0:
         scheduled_expenses = ScheduleExpense.objects.filter(type="WEEKLY")
         for expense in scheduled_expenses:
             account = scheduled_expenses.account
             new_balance = account.balance - expense.cost
-            account.update(balance=new_balance)
+            account.balance = new_balance
+            account.save()
 
     if timezone.now().day == 1:
         scheduled_expenses = ScheduleExpense.objects.filter(type="MONTHLY")
         for expense in scheduled_expenses:
             account = scheduled_expenses.account
             new_balance = account.balance - expense.cost
-            account.update(balance=new_balance)
+            account.balance = new_balance
+            account.balance = account.save()
+        
+        budgets = Budget.objects.all()
+        for budget in budgets:
+            budget.balance = 0
+            budget.save()
 
     if timezone.now().day == 1 and timezone.now().month == 1:
         scheduled_expenses = ScheduleExpense.objects.filter(type="YEARLY")
         for expense in scheduled_expenses:
             account = scheduled_expenses.account
             new_balance = account.balance - expense.cost
-            account.update(balance=new_balance)
+            account.balance = new_balance
 
 

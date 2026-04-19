@@ -41,7 +41,6 @@ def home(request):
     context['reccuring_expenses'] = ScheduleExpense.objects.filter(user=request.user)
     context['latest_transactions'] = ItemTransaction.objects.filter(user=request.user).order_by("-id")[:3]
     context['next_recurring'] = ScheduleExpense.objects.filter(user=request.user).order_by("-id")[:1]
-    context['flagged_count'] = ItemTransaction.objects.filter(account__isnull=True).count()
     budget_agg = Budget.objects.filter(user=request.user).aggregate(
         total_balance=Sum("balance"),
         total_limit=Sum("limit"),
