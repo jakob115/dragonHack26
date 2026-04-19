@@ -9,7 +9,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
 from django.core.serializers.json import DjangoJSONEncoder
-from .models import ReceiptTransaction, Category, ItemTransaction
+from .models import ReceiptTransaction, Category, ItemTransaction, ScheduleExpense
 
 from DH26 import settings
 
@@ -79,3 +79,34 @@ def receipt_image_background_process(receipt_id,  is_Image, user_id):
                                                   merchant=item['merchant'],
                                                   name=item['name']
                                                 )
+
+@celery_app.task(name="update_scheduled_expenses")
+def update_scheduled_expenses():
+    scheduled_expenses = ScheduleExpense.objects.filter(type="DAILY")
+    for expense in scheduled_expenses:
+        account = scheduled_expenses.account
+        new_balance = account.balance - expense.cost
+        account.update(balance=new_balance)
+    
+    if datetime.now.weekday() == 0:
+        scheduled_expenses = ScheduleExpense.objects.filter(type="WEEKLY")
+        for expense in scheduled_expenses:
+            account = scheduled_expenses.account
+            new_balance = account.balance - expense.cost
+            account.update(balance=new_balance)
+            
+    if timezone.now().day == 1:
+        scheduled_expenses = ScheduleExpense.objects.filter(type="MONTHLY")
+        for expense in scheduled_expenses:
+            account = scheduled_expenses.account
+            new_balance = account.balance - expense.cost
+            account.update(balance=new_balance)
+
+    if timezone.now().day == 1 and timezone.now().month == 1:
+        scheduled_expenses = ScheduleExpense.objects.filter(type="YEARLY")
+        for expense in scheduled_expenses:
+            account = scheduled_expenses.account
+            new_balance = account.balance - expense.cost
+            account.update(balance=new_balance)
+
+

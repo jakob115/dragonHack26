@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 from pathlib import Path
+from celery.schedules import crontab
 import environ 
 import certifi
 
@@ -169,3 +170,10 @@ CELERY_TIMEZONE = "Europe/Ljubljana"
 CELERY_ENABLE_UTC = True
 CELERY_BROKER_URL = "redis://localhost:6379/1"
 CELERY_RESULT_BACKEND = "redis://localhost:6379/1"
+
+CELERY_BEAT_SCHEDULE = {
+    "update-expenses-every-day": {
+        "task": "app_main.tasks.update_scheduled_expenses",
+        "schedule": crontab(hour=0, minute=0),
+    },
+}
