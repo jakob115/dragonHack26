@@ -26,6 +26,8 @@ urlpatterns = [
     path('edit-transaction-item/<str:item_id>', views.edit_transaction_item, name="edit-transaction-item"),
     path('edit-item/', views.edit_item, name="edit_item"),
     path('submit-money/', views.submit_money, name="submit_money"),
+    path('assign_receipt_account/', views.assign_receipt_account, name="assign_receipt_account"),
+    path('assign_item_account/', views.assign_item_account, name="assign_item_account"),
     path('stream/', views.stream_chat, name="stream"),
     path('create-recurring-item/', views.create_recurring_item, name="create-recurring-item"),
     path('create-recurring/', views.create_recurring, name="create-recurring"),
@@ -33,7 +35,7 @@ urlpatterns = [
     path('edit-recurring-item/<str:rec_id>', views.edit_recurring_item, name="edit-recurring-item"),
     path('edit-recurring/', views.edit_recurring, name="edit-recurring"),
     path('delete-budget-item/<str:budget_id>', views.delete_budget_item, name="delete-budget-item"),
-
+    
     path('stream/', views.stream_chat, name="stream"),
 
     path('export-to-excel/', views.export_to_excel, name="export-to-excel"),

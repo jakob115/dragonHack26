@@ -11,7 +11,7 @@
     <div class="panel-body panel-body-tight">
         {% for transaction in transaction_data %}
         {% if transaction.item_list %}
-        <div class="panel" style="margin-bottom: 10px">
+        <div class="panel ledger-card-gap">
             <div class="panel-head">
                 <div class="panel-link">grouped view</div>
             </div>
@@ -19,9 +19,6 @@
                 <div class="receipt-sample">
                     <div class="receipt-sample-head">
                         <div class="receipt-sample-title
-                        {% if not item.account %}
-                        red-dim text-red
-                        {% endif %}
                         ">{{ transaction.transaction_merchant }} · {{ transaction.transaction_date }}</div>
                         <div class="inline-actions">
                           <a href="{% url 'delete-transaction-receipt' transaction.receipt_id %}">
@@ -45,30 +42,68 @@
                         </li>
                         {% endfor %}
                     </ul>
+                    {% if not transaction.account %}
+                    <form method="post" action="{% url 'assign_receipt_account' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="receipt_id" value="{{ transaction.receipt_id }}">
+                        <div class="qa-field" style="margin-top: 10px;">
+                            <label class="qa-label" for="tx-group-select-{{ transaction.receipt_id }}">Assign to</label>
+                            <select class="qa-input qa-select" id="tx-group-select-{{ transaction.receipt_id }}" name="assign_to">
+                                <option value="" selected disabled>Select…</option>
+                                {% for acc in accounts %}
+                                <option value="{{acc.id}}">{{ acc.title }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="qa-btns" style="margin-top: 8px;">
+                            <button type="submit" class="btn btn-gold btn-sm btn-flex">Apply</button>
+                        </div>
+                    </form>
+                    {% endif %}
                 </div>
             </div>
         </div>
         {% else %}
-        <div class="tx">
-            <div class="tx-inf">
-                <div class="tx-merch">{{ transaction.item.name }}</div>
-                <div class="tx-meta"><div class="tx-cat-tag
-                {% if not transaction.item.account %}
-                   red-dim text-red
-                {% endif %}
-                ">{{ transaction.item.merchant }}</div><div class="tx-date">{{ transaction.item.date }}</div></div>
-            </div>
-            <div class="tx-actions">
-                <div class="tx-amt deb">−€{{ transaction.item.cost|floatformat:2 }}</div>
-                <div class="inline-actions">
-                                <a href="{% url 'edit-transaction-item' transaction.item.id %}">
-                                    <button type="button" class="btn btn-sm">Edit</button>
-                                </a>
-                                <a href="{% url 'delete-transaction-item' transaction.item.id %}">
-                                    <button type="button" class="btn btn-sm btn-danger">Delete</button>
-                                </a>
+        <div class="tx-card">
+            <div class="tx">
+                <div class="tx-inf">
+                    <div class="tx-merch">{{ transaction.item.name }}</div>
+                    <div class="tx-meta"><div class="tx-cat-tag
+                    {% if not transaction.item.account %}
+                       red-dim text-red
+                    {% endif %}
+                    ">{{ transaction.item.merchant }}</div><div class="tx-date">{{ transaction.item.date }}</div></div>
+                </div>
+                <div class="tx-actions">
+                    <div class="tx-amt deb">−€{{ transaction.item.cost|floatformat:2 }}</div>
+                    <div class="inline-actions">
+                                    <a href="{% url 'edit-transaction-item' transaction.item.id %}">
+                                        <button type="button" class="btn btn-sm">Edit</button>
+                                    </a>
+                                    <a href="{% url 'delete-transaction-item' transaction.item.id %}">
+                                        <button type="button" class="btn btn-sm btn-danger">Delete</button>
+                                    </a>
+                    </div>
                 </div>
             </div>
+            {% if not transaction.item.account %}
+            <div class="tx-alert">
+                <form method="post" action="{% url 'assign_item_account' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="item_id" value="{{ transaction.item.pk }}">
+                    <label class="qa-label" for="tx-item-select-{{ transaction.item.pk }}" style="display:block;margin-bottom:6px;">Link to account</label>
+                    <div class="inline-actions" style="gap:8px;align-items:center;">
+                        <select class="qa-input qa-select" id="tx-item-select-{{ transaction.item.pk }}" name="assign_to" required style="flex:1;min-width:0;">
+                            <option value="" disabled selected>Select account…</option>
+                            {% for acc in accounts %}
+                            <option value="{{ acc.id }}">{{ acc.title }}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="btn btn-gold btn-sm" style="flex-shrink:0;">Apply</button>
+                    </div>
+                </form>
+            </div>
+            {% endif %}
         </div>
         {% endif %}
         {% endfor %}

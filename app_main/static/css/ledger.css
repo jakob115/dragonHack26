@@ -335,6 +335,28 @@ body.modal-open{overflow:hidden;}
 .panel-body{padding:14px 16px;}
 .panel-body-tight{padding-top:8px;}
 
+/* Space between transaction “cards” in the transactions list */
+.ledger-card-gap{margin-bottom:14px;}
+.tx-card{
+  background:var(--bg2);
+  border:0.5px solid var(--line2);
+  border-radius:10px;
+  margin-bottom:14px;
+  overflow:hidden;
+}
+.panel-body-tight > .ledger-card-gap:last-child,
+.panel-body-tight > .tx-card:last-child{margin-bottom:0;}
+.tx-card .tx{
+  padding:12px 14px;
+  border-bottom-color:var(--line2);
+}
+.tx-card .tx:first-child{padding-top:12px;}
+.tx-card .tx-alert{
+  margin:0;
+  padding:12px 14px;
+  border-top:0.5px solid var(--line2);
+}
+
 .cat-item{margin-bottom:13px;}
 .cat-item:last-child{margin-bottom:0;}
 .cat-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;}
