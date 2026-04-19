@@ -7,17 +7,22 @@
 <div class="panel">
     <div class="panel-head">
         <div class="panel-title">Monthly budgets</div>
-        <div class="panel-link">April 2025</div>
+        <div class="panel-head-actions">
+            <div class="panel-link">April 2025</div>
+            <button type="button" class="btn btn-gold btn-sm" id="btn-open-budget-modal">+ Add budget</button>
+        </div>
     </div>
     <div class="panel-body">
+        {% for item in budgets %}
         <div class="cat-item">
             <div class="cat-top">
-                <div class="cat-name"><div class="cat-pip gold-bg"></div>Groceries</div>
-                <div class="cat-amt">€706 / €800</div>
+                <div class="cat-name"><div class="cat-pip gold-bg"></div>{{ item.title }}</div>
+                <div class="cat-amt">€{{ item.balance }} / €{{ item.limit }}</div>
             </div>
-            <div class="cat-track"><div class="cat-fill gold-bg" style="width:88%"></div></div>
-            <div class="cat-pct">€94 remaining</div>
+            <div class="cat-track"><div class="cat-fill gold-bg" style="width:{{ item.percentage }}%"></div></div>
+            <div class="cat-pct">€{{ item.remaining }} remaining</div>
         </div>
+        {% endfor %}
         <div class="cat-item">
             <div class="cat-top">
                 <div class="cat-name"><div class="cat-pip blue-bg"></div>Transport</div>
@@ -28,4 +33,72 @@
         </div>
     </div>
 </div>
+
+<div class="modal-backdrop" id="budget-modal" role="dialog" aria-modal="true" aria-labelledby="budget-modal-title" aria-hidden="true" hidden>
+    <div class="modal-sheet">
+        <div class="modal-head">
+            <h2 class="modal-title" id="budget-modal-title">New budget</h2>
+            <button type="button" class="modal-close" id="budget-modal-close" aria-label="Close">&times;</button>
+        </div>
+        <form class="modal-form" method="post" action="{% url 'add_budget' %}">
+            {% csrf_token %}
+            <div class="modal-field">
+                <label class="qa-label" for="budget-title">Title</label>
+                <input class="qa-input" type="text" id="budget-title" name="title" required maxlength="100" placeholder="e.g. Groceries cap">
+            </div>
+            <div class="modal-field">
+                <label class="qa-label" for="budget-limit">Limit</label>
+                <input class="qa-input" type="number" id="budget-limit" name="limit" inputmode="decimal" step="0.01" min="0" placeholder="0.00" required>
+            </div>
+            <div class="modal-field">
+                <label class="qa-label" for="budget-category">Category</label>
+                <select class="qa-input qa-select" id="budget-category" name="category" required>
+                    <option value="" disabled {% if categories %}selected{% endif %}>Select category…</option>
+                    {% for c in categories %}
+                        <option value="{{ c.pk }}">{{ c.title }}</option>
+                    {% endfor %}
+                </select>
+                {% if not categories %}
+                    <p class="qa-hint" style="margin-bottom:0;">No categories in the database yet. Add categories first.</p>
+                {% endif %}
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-sm" id="budget-modal-cancel">Cancel</button>
+                <button type="submit" class="btn btn-gold btn-sm" {% if not categories %}disabled{% endif %}>Save budget</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extrascripts %}
+<script>
+(() => {
+    const modal = document.getElementById("budget-modal");
+    const openBtn = document.getElementById("btn-open-budget-modal");
+    const closeBtn = document.getElementById("budget-modal-close");
+    const cancelBtn = document.getElementById("budget-modal-cancel");
+
+    const open = () => {
+        modal.hidden = false;
+        modal.removeAttribute("hidden");
+        modal.setAttribute("aria-hidden", "false");
+        document.body.classList.add("modal-open");
+        document.getElementById("budget-title")?.focus();
+    };
+    const close = () => {
+        modal.hidden = true;
+        modal.setAttribute("aria-hidden", "true");
+        document.body.classList.remove("modal-open");
+    };
+
+    openBtn?.addEventListener("click", open);
+    closeBtn?.addEventListener("click", close);
+    cancelBtn?.addEventListener("click", close);
+    modal?.addEventListener("click", (e) => { if (e.target === modal) close(); });
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && modal && !modal.hidden) close();
+    });
+})();
+</script>
 {% endblock %}

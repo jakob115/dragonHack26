@@ -13,6 +13,7 @@ urlpatterns = [
     path('analytics/', views.analytics, name="analytics"),
     path('chat/', views.chat, name="chat"),
     path('budgets/', views.budgets, name="budgets"),
+    path('budgets/add/', views.add_budget, name="add_budget"),
     path('add_account/', views.add_account, name="add_account"),
     path('scan-receipt/', views.process_receipt_image, name="scan_receipt"),
     path('add-item/', views.quick_add_item, name="quick_add_item"),

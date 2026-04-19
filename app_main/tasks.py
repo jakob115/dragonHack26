@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from DH26 import celery_app
 from datetime import datetime
 from google.genai import types
@@ -9,9 +11,10 @@ from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
 from django.core.serializers.json import DjangoJSONEncoder
-from .models import ReceiptTransaction, Category, ItemTransaction
+from .models import ReceiptTransaction, Category, ItemTransaction, Budget
 
 from DH26 import settings
+
 
 client = genai.Client(api_key=settings.GEMINI_API_KEY)
 
@@ -93,3 +96,12 @@ def receipt_image_background_process(receipt_id,  is_Image, user_id):
                                                   name=item['name'],
                                                   subcategory=curr_subcategory
                                                 )
+        cat = new_item.category
+        budgets = Budget.objects.filter(user=curr_user, category__title=cat.title)
+        if budgets:
+            for budget in budgets:
+                budget.balance += Decimal(new_item.cost)
+                budget.save()
+        if cat.parent:
+            cat.parent.budget += Decimal(new_item.cost)
+            cat.parent.save()

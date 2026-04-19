@@ -27,7 +27,7 @@ SECRET_KEY = 'django-insecure-yvu8^n3ymu*uup*&iitt)rx&i&#%hv%xcyo_lazj$wze1q*cbm
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['10.32.251.60', 'localhost']
+ALLOWED_HOSTS = ['10.32.251.60', 'localhost', '10.32.248.107']
 
 # Setup .env file to use keys
 env = environ.Env()
